@@ -1,0 +1,4 @@
+(executable
+ (public_name hangry-squid)
+ (name main)
+ (libraries hangry_squid))
