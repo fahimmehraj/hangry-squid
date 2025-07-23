@@ -1,2 +1,5 @@
 (library
- (name hangry_squid))
+ (name hangry_squid)
+ (libraries async_kernel core bonsai bonsai.web)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css)))
