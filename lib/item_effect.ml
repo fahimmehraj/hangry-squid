@@ -6,7 +6,7 @@ type t = {
   remove_health : int;
   chance_of_removing : float;
 }
-[@@deriving sexp]
+[@@deriving sexp, compare]
 
 let create ?(add_health = 0) ?(chance_of_adding = 0.0) ?(remove_health = 0)
     ?(chance_of_removing = 0.0) () : t =
