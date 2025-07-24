@@ -1,23 +1,55 @@
 open! Core
 open Bonsai_web
 open Bonsai.Let_syntax
+module Url_var = Bonsai_web_ui_url_var
 
 (* An example of a small Bonsai component for creating counter
    widgets ("+" and "-" buttons allow you to increment and decrement a
    number). The state of each counter is housed in a shared [Map]. Adding
    a new counter is as simple as adding a value to the map. *)
 
-let header = {%html|
-  <h1>Hangry Games</h1>
+let header =
+  {%html|
+  <div>
+    <h1>Hangry Games</h1>
+    <p>Waiting for games to start</p>
+  </div>
 |}
+;;
 
-let player_in_waiting_room name avatar_url =
+(* let player_in_waiting_room name avatar_url =
   {%html|
   <div class="player">
       <img class="avatar" src=%{avatar_url#String} />
       <h2>%{name#String}</h2>
   </div>
 |}
+;; *)
+
+let player_in_waiting_room name avatar_url =
+  let container_styles =
+    [%css
+      {|
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  |}]
+  in
+  let avatar_styles =
+    [%css
+      {|
+    width: 200px;
+  height: 200px;
+  border-radius: 50%; /* Makes the image circular */
+  object-fit: cover; /* Ensures the image covers the area without distortion */
+  display: block; /* Removes extra space below the image if it's inline */
+  |}]
+  in
+  Vdom.Node.div
+    ~attrs:[ container_styles ]
+    [ Vdom.Node.img ~attrs:[ Vdom.Attr.src avatar_url; avatar_styles ] ()
+    ; Vdom.Node.h2 [ Vdom.Node.text name ]
+    ]
 ;;
 
 let component graph =
@@ -50,15 +82,20 @@ let component graph =
   Vdom.Node.div (add_button :: counters)
 ;;
 
-let players = List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" i)
+let players = List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
 
 let app graph =
   let player_view =
     Vdom.Node.div
-      ~attrs:[ [%css {|
+      ~attrs:
+        [ [%css
+            {|
     display: flex;
     padding: 8px;
-  |}] ]
+    gap: 20px;
+    flex-wrap: wrap;
+  |}]
+        ]
       (List.map players ~f:(fun player ->
          player_in_waiting_room
            player
@@ -68,5 +105,11 @@ let app graph =
   let%arr component in
   Vdom.Node.div [ header; player_view; component ]
 ;;
+
+(* let serve_route (route: Page.t Bonsai.t) graph =
+  match%sub route with
+  | Waiting_room -> app graph
+  | _ -> failwith "ha"
+;; *)
 
 let () = Bonsai_web.Start.start app
