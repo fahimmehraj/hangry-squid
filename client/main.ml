@@ -7,6 +7,19 @@ open Bonsai.Let_syntax
    number). The state of each counter is housed in a shared [Map]. Adding
    a new counter is as simple as adding a value to the map. *)
 
+let header = {%html|
+  <h1>Hangry Games</h1>
+|}
+
+let player_in_waiting_room name avatar_url =
+  {%html|
+  <div class="player">
+      <img class="avatar" src=%{avatar_url#String} />
+      <h2>%{name#String}</h2>
+  </div>
+|}
+;;
+
 let component graph =
   let state, inject =
     Bonsai.state_machine
@@ -37,4 +50,23 @@ let component graph =
   Vdom.Node.div (add_button :: counters)
 ;;
 
-let () = Bonsai_web.Start.start component
+let players = List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" i)
+
+let app graph =
+  let player_view =
+    Vdom.Node.div
+      ~attrs:[ [%css {|
+    display: flex;
+    padding: 8px;
+  |}] ]
+      (List.map players ~f:(fun player ->
+         player_in_waiting_room
+           player
+           "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"))
+  in
+  let component = component graph in
+  let%arr component in
+  Vdom.Node.div [ header; player_view; component ]
+;;
+
+let () = Bonsai_web.Start.start app
