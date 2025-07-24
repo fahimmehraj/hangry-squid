@@ -30,28 +30,27 @@ let add_action t (action : Action.t) =
   { t with actions_taken_in_round = action :: t.actions_taken_in_round }
 ;;
 
-let get_items_used_by_player t (player : Player.t) =
+let get_items_used_by_player t player =
   List.filter_map t.actions_taken_in_round ~f:(fun action ->
-    if Player.equal action.user player then Some action.item_used else None)
+    if String.equal action.user player then Some action.item_used else None)
 ;;
 
-let add_private_result t (player : Player.t) result =
-  let name = player.name in
+let add_private_result t player_name result =
   let new_private_results =
-    match Map.find t.private_results name with
+    match Map.find t.private_results player_name with
     | None -> [ result ]
     | Some results_list -> result :: results_list
   in
   { t with
     private_results =
-      Map.set t.private_results ~key:name ~data:new_private_results
+      Map.set t.private_results ~key:player_name ~data:new_private_results
   }
 ;;
 
 let add_observer_message t (action : Action.t) =
-  let user = action.user
-  and recipient = action.recipient in
-  let actions_observed = get_items_used_by_player t recipient in
+  let user = Map.find_exn t.players action.user
+  and recipient = Map.find_exn t.players action.recipient in
+  let actions_observed = get_items_used_by_player t recipient.name in
   let actions_observed_as_string =
     List.map actions_observed ~f:Item.to_string |> String.concat ~sep:", "
   in
@@ -64,64 +63,66 @@ let add_observer_message t (action : Action.t) =
        Actions Observed: %{actions_observed_as_string}"]
   in
   let new_result : Round_result.t =
-    { player_in_question = recipient; message }
+    { player_in_question = recipient.name; message }
   in
-  add_private_result t user new_result
+  add_private_result t user.name new_result
 ;;
 
 let add_item_interception_message t (action : Action.t) =
-  let user = action.user
-  and recipient = action.recipient in
+  let user = Map.find_exn t.players action.user
+  and recipient = Map.find_exn t.players action.recipient in
   let user_result : Round_result.t =
-    { player_in_question = recipient
+    { player_in_question = recipient.name
     ; message =
         [%string "will not receive an item next round because of you"]
     }
   in
-  let new_game_state = add_private_result t user user_result in
+  let new_game_state = add_private_result t user.name user_result in
   (* we don't want to send the same message to the same user in case they happened to waste an item on themselves *)
   match Player.equal user recipient with
   | true -> new_game_state
   | false ->
     let recipient_result : Round_result.t =
-      { player_in_question = user
+      { player_in_question = user.name
       ; message = [%string "blocked you from receiving an item next round"]
       }
     in
-    add_private_result t recipient recipient_result
+    add_private_result t recipient.name recipient_result
 ;;
 
 let add_gamblers_potion_message t (action : Action.t) health_change =
-  let user = action.user
-  and recipient = action.recipient in
+  let user = Map.find_exn t.players action.user
+  and recipient = Map.find_exn t.players action.recipient in
   let (recipient_result : Round_result.t), (user_result : Round_result.t) =
     match health_change with
     | 60 ->
-      ( { player_in_question = user
+      ( { player_in_question = user.name
         ; message =
             [%string
               "used Gambler's Potion on you, adding %{health_change#Int}HP \
                to you"]
         }
-      , { player_in_question = recipient
+      , { player_in_question = recipient.name
         ; message = [%string "gained %{health_change#Int}HP because of you"]
         } )
     | 40 ->
-      ( { player_in_question = user
+      ( { player_in_question = user.name
         ; message =
             [%string
               "used Gmabler's Potion on you, removing \
                %{health_change#Int}HP from you"]
         }
-      , { player_in_question = recipient
+      , { player_in_question = recipient.name
         ; message = [%string "lost %{health_change#Int}HP because of you"]
         } )
     | _ -> failwith "add_gamblers_potion_message: invalid health_change"
   in
-  let new_game_state = add_private_result t recipient recipient_result in
+  let new_game_state =
+    add_private_result t recipient.name recipient_result
+  in
   match Player.equal user recipient with
   | true -> new_game_state
-  | false -> add_private_result t user user_result
+  | false -> add_private_result t user.name user_result
 ;;
 
 let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
@@ -129,8 +130,8 @@ let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
   (* get a float between 0 and 1 to represent some probability,
      considered a success if this float is less than or equal
      to the success chance, otherwise we remove the health *)
-  let recipient = action.recipient in
-  let name = recipient.name
+  let recipient = Map.find_exn t.players action.recipient in
+  let recipient_name = recipient.name
   and previous_health = recipient.health
   and uniform_chance = Random.float 1.0 in
   let recipient_with_updated_health, new_game_state =
@@ -150,7 +151,7 @@ let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
     players =
       Map.set
         new_game_state.players
-        ~key:name
+        ~key:recipient_name
         ~data:recipient_with_updated_health
   }
 ;;
@@ -160,56 +161,60 @@ let add_successful_item_use_message
       (action : Action.t)
       (health_change : int)
   =
-  let user = action.user
-  and recipient = action.recipient
+  let user = Map.find_exn t.players action.user
+  and recipient = Map.find_exn t.players action.recipient
   and item = action.item_used in
   let (user_result : Round_result.t), (recipient_result : Round_result.t) =
     match 0 < health_change with
     (* health was added *)
     | true ->
-      ( { player_in_question = recipient
+      ( { player_in_question = recipient.name
         ; message =
             [%string "gained %{health_change#Int}HP from your %{item#Item}"]
         }
-      , { player_in_question = user
+      , { player_in_question = user.name
         ; message =
             [%string "gave you %{health_change#Int}HP by using %{item#Item}"]
         } )
     (* health was removed*)
     | false ->
       let health_change = abs health_change in
-      ( { player_in_question = recipient
+      ( { player_in_question = recipient.name
         ; message =
             [%string "lost %{health_change#Int}HP from your %{item#Item}"]
         }
-      , { player_in_question = user
+      , { player_in_question = user.name
         ; message =
             [%string
               "removed %{health_change#Int}HP from you using %{item#Item}"]
         } )
   in
-  let new_game_state = add_private_result t recipient recipient_result in
+  let new_game_state =
+    add_private_result t recipient.name recipient_result
+  in
   match Player.equal user recipient with
   | true -> new_game_state
-  | false -> add_private_result new_game_state user user_result
+  | false -> add_private_result new_game_state user.name user_result
 ;;
 
 let add_failed_item_use_message t (action : Action.t) =
-  let user = action.user
-  and recipient = action.recipient
+  let user = Map.find_exn t.players action.user
+  and recipient = Map.find_exn t.players action.recipient
   and item = action.item_used in
   let (user_result : Round_result.t), (recipient_result : Round_result.t) =
-    ( { player_in_question = recipient
+    ( { player_in_question = recipient.name
       ; message = [%string "failed to use %{item#Item} on %{recipient.name}"]
       }
-    , { player_in_question = user
+    , { player_in_question = user.name
       ; message = [%string "failed to use %{item#Item} on you"]
       } )
   in
-  let new_game_state = add_private_result t recipient recipient_result in
+  let new_game_state =
+    add_private_result t recipient.name recipient_result
+  in
   match Player.equal user recipient with
   | true -> new_game_state
-  | false -> add_private_result new_game_state user user_result
+  | false -> add_private_result new_game_state user.name user_result
 ;;
 
 let apply_item_effect t (action : Action.t) (item_effect : Item_effect.t) =
@@ -223,7 +228,7 @@ let apply_item_effect t (action : Action.t) (item_effect : Item_effect.t) =
   in
   match Float.( <= ) uniform_chance success_chance with
   | true ->
-    let recipient = action.recipient in
+    let recipient = Map.find_exn t.players action.recipient in
     let new_health = health_change + recipient.health in
     let recipient = { recipient with health = new_health } in
     let new_game_state =
