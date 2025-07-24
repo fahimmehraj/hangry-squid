@@ -1,2 +1,11 @@
-(test
- (name test_hangry_squid))
+(library
+ (name test_hangry_squid)
+ (libraries async_kernel core hangry_squid)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane ppx_inline_test)))
+
+(env
+ (dev
+  (flags
+   (:standard -w -69 -w -34))))
