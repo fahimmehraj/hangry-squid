@@ -19,8 +19,12 @@ let create_empty_game () =
   }
 ;;
 
-(* let add_player t (player : Player.t) =  *)
-
+let add_player t (player : Player.t) =
+  match Map.find t.players player.name with
+  | None ->
+    { t with players = Map.set t.players ~key:player.name ~data:player }
+  | Some _ -> failwith "Name already taken"
+;;
 
 let add_action t (action : Action.t) =
   { t with actions_taken_in_round = action :: t.actions_taken_in_round }
