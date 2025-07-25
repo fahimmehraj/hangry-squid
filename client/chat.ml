@@ -1,6 +1,6 @@
 open! Core
 open Bonsai_web
-open Bonsai.Let_syntax
+(* open Bonsai.Let_syntax *)
 
 (* An example of a small Bonsai component for creating counter
    widgets ("+" and "-" buttons allow you to increment and decrement a
@@ -11,7 +11,9 @@ let header =
   {%html|
   <div>
     <h1>Hangry Games</h1>
-    <p>Waiting for games to start</p>
+    <p>60 seconds left</p>
   </div>
 |}
 ;;
+
+let body () = Bonsai.return (Vdom.Node.div [ header ])
