@@ -3,10 +3,13 @@ open Bonsai_web
 open Bonsai.Let_syntax
 module Url_var = Bonsai_web_ui_url_var
 
-let serve_route (route: Page.t Url_var.t) (local_ graph) =
-  let route = Url_var.value route in
+let serve_route (url_var: Page.t Url_var.t) (local_ graph) =
+  let route = Url_var.value url_var in
   match%sub route with
-  | _ -> Waiting_room.page route graph
+  | Waiting_room -> Waiting_room.page url_var graph
+  | Rules -> Rules.body url_var
+  | Negotiation -> Negotiation.body ()
+  | _ -> Waiting_room.page url_var graph
 ;;
 
 let url_var = Url_var.create_exn (module Page) ~fallback:Waiting_room

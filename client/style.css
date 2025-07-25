@@ -1,3 +1,63 @@
+@import url('//fonts.googleapis.com/earlyaccess/jejumyeongjo.css');
+
+body {
+    font-family: "Jeju Myeongjo";
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 150px;
+    align-items: center;
+    border: 1px solid black
+}
+
+.item p {
+    text-align: center;
+}
+
+.item img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.items {
+    display: flex;
+    padding: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.inventory {
+    display: flex;
+    padding: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+    border: 2px solid black;
+}
+
+.healthbar {
+  width: 100px; /* Example fixed width, adjust as needed */
+  height: 25px; /* Example fixed height, adjust as needed */
+  background: linear-gradient(
+    to right, /* Or to bottom, to top, to left, or an angle like 45deg */
+    #ff0000 0%,    /* First color starts at 0% */
+    #ff0000 23%,   /* First color ends at 23% */
+    #0000ff 26%,   /* Second color starts at 26% */
+    #0000ff 100%   /* Second color ends at 100% */
+  );
+  /* Optional: Add a border or box-shadow for better visibility */
+  border: 1px solid #ccc;
+}
+
 .test {
     color: red;
 }

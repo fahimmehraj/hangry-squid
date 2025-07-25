@@ -5,7 +5,7 @@ module Url_var = Bonsai_web_ui_url_var
 
 let header =
   {%html|
-  <div>
+  <div class="header">
     <h1>Hangry Games</h1>
     <p>Waiting for games to start</p>
   </div>
@@ -38,6 +38,10 @@ let player_in_waiting_room name avatar_url =
     ]
 ;;
 
+let next_phase_button url_var = Vdom.Node.button 
+  ~attrs:[ Vdom.Attr.on_click (fun _ -> Url_var.set_effect url_var Page.Rules)]
+[ Vdom.Node.text "next phase" ]
+
 let component (local_ graph) route =
   let state, inject =
     Bonsai.state_machine
@@ -50,7 +54,7 @@ let component (local_ graph) route =
             | Some x -> x + diff))
       graph
   in
-  let%arr state and inject and route in
+  let%arr state and inject in
   let button text action =
     Vdom.Node.button
       ~attrs:[ Vdom.Attr.on_click (fun _ -> inject action) ]
@@ -65,10 +69,10 @@ let component (local_ graph) route =
       ]
   in
   let counters = state |> Map.to_alist |> List.map ~f:for_each in
-  let debug =
+  (* let debug =
     Vdom.Node.p [ Vdom.Node.text (Sexp.to_string (Page.sexp_of_t route)) ]
-  in
-  Vdom.Node.div (add_button :: debug :: counters)
+  in *)
+  Vdom.Node.div (add_button :: next_phase_button route :: counters)
 ;;
 
 let players = List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
