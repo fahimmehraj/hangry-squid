@@ -138,18 +138,18 @@ let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
     match Float.( <= ) uniform_chance item_effect.chance_of_adding with
     | true ->
       let health_to_add = item_effect.add_health in
-      (* intentionally allow health to overflow in case someone was 
-         stabbed and used a bandage within the same round. We currently 
-         do not give any specific priority to who uses an item first 
-         so we only consider net changes in health. The health will be 
-         capped at 100 when computing the final round results, i.e. who 
+      (* intentionally allow health to overflow in case someone was
+         stabbed and used a bandage within the same round. We currently
+         do not give any specific priority to who uses an item first
+         so we only consider net changes in health. The health will be
+         capped at 100 when computing the final round results, i.e. who
          died in the round and other information *)
       let new_health = previous_health + health_to_add in
       ( { recipient with health = new_health }
       , add_gamblers_potion_message t action health_to_add )
     | false ->
       let health_to_subtract = item_effect.remove_health in
-      (* same comment as above, we allow health to go below 0 but will 
+      (* same comment as above, we allow health to go below 0 but will
          cap at 0 when displaying results *)
       let new_health = previous_health - health_to_subtract in
       ( { recipient with health = new_health }
@@ -265,4 +265,49 @@ let apply_actions_taken t =
         apply_item_effect acc_state action_taken item_effect)
 ;;
 
-let compile_all_results t = ()
+let compile_all_elimination_results t =
+  Map.fold t.players ~init:t ~f:(fun ~key ~data acc_state ->
+    let player_name = key in
+    let player = data in
+    let health = player.health in
+    match health > 100 with
+    (* cap the player's health at 100 in case multiple healing items were used*)
+    | true ->
+      let player_with_health_updated = { player with health = 100 } in
+      { acc_state with
+        players =
+          Map.set
+            acc_state.players
+            ~key:player_name
+            ~data:player_with_health_updated
+      }
+    | false ->
+      (match health <= 0 with
+       (* round all health below 0 to 0 so that no one's health bar shows -30 HP*)
+       | true ->
+         let player_with_health_updated =
+           { player with health = 0; is_alive = false }
+         in
+         let new_game_state =
+           { acc_state with
+             players =
+               Map.set
+                 acc_state.players
+                 ~key:player_name
+                 ~data:player_with_health_updated
+           }
+         in
+         let elimination_result : Round_result.t =
+           { player_in_question = player_name
+           ; message =
+               [%string
+                 "was eliminated in round \
+                  %{new_game_state.current_round#Int}"]
+           }
+         in
+         { new_game_state with
+           public_results =
+             elimination_result :: new_game_state.public_results
+         }
+       | false -> acc_state))
+;;

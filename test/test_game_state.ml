@@ -48,8 +48,8 @@ let heal_after_pocket_knife =
   |> Game_state.apply_actions_taken
 ;;
 
-let gamblers_potion = 
-  Random.init 100;
+let gamblers_potion seed = 
+  Random.init seed;
   let after_knife = Game_state.add_action two_player { user = "bob"; recipient = "bob"; item_used = Item.pocket_knife } in
   Game_state.add_action
     after_knife
@@ -217,8 +217,8 @@ let%expect_test "test_heal_after_knife" =
           (message "gave you 25HP by using Medical Kit"))))))) |}]
 ;;
 
-let%expect_test "test_gamblers_potion" = 
-  print_s [%sexp (gamblers_potion : Game_state.t)];
+let%expect_test "test_gamblers_potion_add_health" = 
+  print_s [%sexp (gamblers_potion 100 : Game_state.t)];
   [%expect {|
     ((current_round 0)
      (players
@@ -241,3 +241,110 @@ let%expect_test "test_gamblers_potion" =
         (((player_in_question bob)
           (message "removed 30HP from you using Pocket Knife"))))
        (jeff (((player_in_question bob) (message "gained 60HP because of you"))))))) |}]
+;;
+
+let%expect_test "test_gamblers_potion_remove_health" = 
+  print_s [%sexp (gamblers_potion 77 : Game_state.t)];
+  [%expect {|
+    ((current_round 0)
+     (players
+      ((bob ((health 30) (inventory ()) (is_alive true) (name bob)))
+       (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
+     (actions_taken_in_round
+      (((user jeff) (recipient bob)
+        (item_used
+         (Gamblers_potion
+          ((add_health 60) (chance_of_adding 0.6) (remove_health 40)
+           (chance_of_removing 0.4)))))
+       ((user bob) (recipient bob)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))))
+     (public_results ())
+     (private_results
+      ((bob
+        (((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))))
+       (jeff (((player_in_question bob) (message "lost 40HP because of you"))))))) |}]
+;;
+
+let%expect_test "test_compile_all_results" =
+  print_s [%sexp (Game_state.compile_all_elimination_results two_player_knife_used : Game_state.t)];
+  [%expect {|
+    ((current_round 0)
+     (players
+      ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
+       (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
+     (actions_taken_in_round
+      (((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))))
+     (public_results ()) (private_results ())) |}]
+;;
+
+let%expect_test "test_compile_all_results_multiple knives" =
+  let g = Fn.apply_n_times ~n:5 (fun game_state -> Game_state.add_action game_state pocket_knife_action) two_player_knife_used |> Game_state.apply_actions_taken in
+  print_s [%sexp (Game_state.compile_all_elimination_results g : Game_state.t)];
+  [%expect {|
+    ((current_round 0)
+     (players
+      ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
+       (jeff ((health 0) (inventory ()) (is_alive false) (name jeff)))))
+     (actions_taken_in_round
+      (((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))
+       ((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))
+       ((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))
+       ((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))
+       ((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))
+       ((user bob) (recipient jeff)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))))
+     (public_results
+      (((player_in_question jeff) (message "was eliminated in round 0"))))
+     (private_results
+      ((bob
+        (((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))
+         ((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))
+         ((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))
+         ((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))
+         ((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))
+         ((player_in_question jeff) (message "lost 30HP from your Pocket Knife"))))
+       (jeff
+        (((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))
+         ((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))
+         ((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))
+         ((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))
+         ((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))
+         ((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))))))) |}]
+;;
