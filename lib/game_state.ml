@@ -68,7 +68,7 @@ let add_observer_message t (action : Action.t) =
   add_private_result t user.name new_result
 ;;
 
-let add_item_interception_message t (action : Action.t) =
+let add_item_blocker_message t (action : Action.t) =
   let user = Map.find_exn t.players action.user
   and recipient = Map.find_exn t.players action.recipient in
   let user_result : Round_result.t =
@@ -255,8 +255,8 @@ let apply_actions_taken t =
     ~f:(fun acc_state action_taken ->
       match action_taken.item_used with
       | Item.Observer -> add_observer_message acc_state action_taken
-      | Item_interception ->
-        add_item_interception_message acc_state action_taken
+      | Item_blocker ->
+        add_item_blocker_message acc_state action_taken
       | Gamblers_potion item_effect ->
         apply_gamblers_potion acc_state action_taken item_effect
       | Medical_kit item_effect

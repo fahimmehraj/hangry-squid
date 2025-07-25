@@ -2,7 +2,7 @@ open! Core
 
 type t =
   | Observer
-  | Item_interception
+  | Item_blocker
   | Medical_kit of Item_effect.t
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
@@ -10,7 +10,7 @@ type t =
 [@@deriving sexp]
 
 val observer : t
-val item_interception : t
+val item_blocker : t
 val medical_kit : t
 val poisonous_dart : t
 val pocket_knife : t
