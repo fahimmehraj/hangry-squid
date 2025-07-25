@@ -7,7 +7,7 @@ type t =
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
   | Gamblers_potion of Item_effect.t
-[@@deriving sexp, compare]
+[@@deriving sexp]
 
 val observer : t
 val item_interception : t

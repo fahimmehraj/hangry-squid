@@ -48,6 +48,15 @@ let heal_after_pocket_knife =
   |> Game_state.apply_actions_taken
 ;;
 
+let gamblers_potion = 
+  Random.init 100;
+  let after_knife = Game_state.add_action two_player { user = "bob"; recipient = "bob"; item_used = Item.pocket_knife } in
+  Game_state.add_action
+    after_knife
+    { user = "jeff" ; recipient = "bob" ; item_used = Item.gamblers_potion}
+    |> Game_state.apply_actions_taken
+;;
+
 let%expect_test "test_empty_game_state" =
   print_s [%sexp (empty : Game_state.t)];
   [%expect
@@ -207,3 +216,28 @@ let%expect_test "test_heal_after_knife" =
          ((player_in_question jeff)
           (message "gave you 25HP by using Medical Kit"))))))) |}]
 ;;
+
+let%expect_test "test_gamblers_potion" = 
+  print_s [%sexp (gamblers_potion : Game_state.t)];
+  [%expect {|
+    ((current_round 0)
+     (players
+      ((bob ((health 130) (inventory ()) (is_alive true) (name bob)))
+       (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
+     (actions_taken_in_round
+      (((user jeff) (recipient bob)
+        (item_used
+         (Gamblers_potion
+          ((add_health 60) (chance_of_adding 0.6) (remove_health 40)
+           (chance_of_removing 0.4)))))
+       ((user bob) (recipient bob)
+        (item_used
+         (Pocket_knife
+          ((add_health 0) (chance_of_adding 0) (remove_health 30)
+           (chance_of_removing 1)))))))
+     (public_results ())
+     (private_results
+      ((bob
+        (((player_in_question bob)
+          (message "removed 30HP from you using Pocket Knife"))))
+       (jeff (((player_in_question bob) (message "gained 60HP because of you"))))))) |}]

@@ -1,14 +1,12 @@
 open! Core
 
 type t =
-  { health : int (* maybe restricted*)
+  { health : int 
   ; inventory : Item.t list
   ; is_alive : bool
   ; name : string
   }
-[@@deriving sexp, compare]
-
-(* module Map : Map.S with type Key.t = t *)
+[@@deriving sexp]
 
 val equal : t -> t -> bool
 val new_player : string -> t

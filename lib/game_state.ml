@@ -138,12 +138,20 @@ let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
     match Float.( <= ) uniform_chance item_effect.chance_of_adding with
     | true ->
       let health_to_add = item_effect.add_health in
-      let new_health = min 100 (previous_health + health_to_add) in
+      (* intentionally allow health to overflow in case someone was 
+         stabbed and used a bandage within the same round. We currently 
+         do not give any specific priority to who uses an item first 
+         so we only consider net changes in health. The health will be 
+         capped at 100 when computing the final round results, i.e. who 
+         died in the round and other information *)
+      let new_health = previous_health + health_to_add in
       ( { recipient with health = new_health }
       , add_gamblers_potion_message t action health_to_add )
     | false ->
       let health_to_subtract = item_effect.remove_health in
-      let new_health = max 0 (previous_health - health_to_subtract) in
+      (* same comment as above, we allow health to go below 0 but will 
+         cap at 0 when displaying results *)
+      let new_health = previous_health - health_to_subtract in
       ( { recipient with health = new_health }
       , add_gamblers_potion_message t action health_to_subtract )
   in
