@@ -2,9 +2,12 @@ open! Core
 
 type t =
   { current_round : int
+  ; current_phase : Game_phase.t
   ; players : Player.t String.Map.t
-    (* map from player name to a player type, names should be unique*)
+  ; ready_players : string list
   ; actions_taken_in_round : Action.t list
+  ; public_messages : Message.t list
+  ; private_messages : ((Message.t list) String.Map.t) String.Map.t
   ; public_results : Round_result.t list
   ; private_results : Round_result.t list String.Map.t
   }
@@ -12,11 +15,35 @@ type t =
 
 let create_empty_game () =
   { current_round = 0
+  ; current_phase = Waiting_room
   ; players = Map.empty (module String)
+  ; ready_players = []
   ; actions_taken_in_round = []
+  ; public_messages = []
+  ; private_messages = String.Map.empty
   ; public_results = []
   ; private_results = Map.empty (module String)
   }
+;;
+
+let name_taken t name =
+  match Map.find t.players name with None -> false | Some _ -> true
+;;
+
+let ready_player t (query : Rpcs.Client_ready.Query.t) =
+  match query.is_ready with
+  | false ->
+    let new_ready_players =
+      List.filter t.ready_players ~f:(fun player_name ->
+        not (String.equal player_name query.name))
+    in
+    { t with ready_players = new_ready_players }
+  | true ->
+    if not (List.mem t.ready_players query.name ~equal:String.equal)
+    then (
+      let new_ready_players = query.name :: t.ready_players in
+      { t with ready_players = new_ready_players })
+    else t
 ;;
 
 let add_player t (player : Player.t) =
@@ -255,8 +282,7 @@ let apply_actions_taken t =
     ~f:(fun acc_state action_taken ->
       match action_taken.item_used with
       | Item.Observer -> add_observer_message acc_state action_taken
-      | Item_blocker ->
-        add_item_blocker_message acc_state action_taken
+      | Item_blocker -> add_item_blocker_message acc_state action_taken
       | Gamblers_potion item_effect ->
         apply_gamblers_potion acc_state action_taken item_effect
       | Medical_kit item_effect
@@ -310,4 +336,10 @@ let compile_all_elimination_results t =
              elimination_result :: new_game_state.public_results
          }
        | false -> acc_state))
+;;
+
+let players_left t =
+  Map.fold t.players ~init:0 ~f:(fun ~key ~data acc ->
+    ignore key;
+    if data.health <> 0 then acc + 1 else acc)
 ;;
