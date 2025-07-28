@@ -14,6 +14,8 @@ type t =
 [@@deriving sexp]
 
 val create_empty_game : unit -> t
+val get_private_messages_by_user : t -> string -> (Message.t list) String.Map.t
+val get_private_results_by_user : t -> Round_result.t list
 val name_staken : t -> string -> bool
 val ready_player : t -> Rpcs.Client_ready.Query.t -> t
 val add_player : t -> Player.t -> t

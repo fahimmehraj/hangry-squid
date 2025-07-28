@@ -26,6 +26,18 @@ let create_empty_game () =
   }
 ;;
 
+let get_private_messages_by_user t name =
+  match Map.find t.private_messages name with 
+  | None -> String.Map.empty
+  | Some map_from_name -> map_from_name
+;;
+
+let get_private_results_by_user t name =
+  match Map.find t.private_results name with 
+  | None -> []
+  | Some results -> results
+;;
+
 let name_taken t name =
   match Map.find t.players name with None -> false | Some _ -> true
 ;;
@@ -343,3 +355,5 @@ let players_left t =
     ignore key;
     if data.health <> 0 then acc + 1 else acc)
 ;;
+
+
