@@ -1,4 +1,4 @@
 (executable
  (public_name hangry-squid)
  (name main)
- (libraries hangry_squid core))
+ (libraries hangry_squid core core_unix.command_unix server))

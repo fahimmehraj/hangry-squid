@@ -2,15 +2,15 @@ open! Core
 
 type t =
   | Observer
-  | Item_interception
+  | Item_blocker
   | Medical_kit of Item_effect.t
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
   | Gamblers_potion of Item_effect.t
-[@@deriving sexp, compare]
+[@@deriving sexp]
 
 let observer = Observer
-let item_interception = Item_interception
+let item_blocker = Item_blocker
 
 let medical_kit =
   Medical_kit (Item_effect.create ~add_health:25 ~chance_of_adding:1.0 ())
@@ -39,7 +39,7 @@ let gamblers_potion =
 let to_string t : string =
   match t with
   | Observer -> "Observer"
-  | Item_interception -> "Item Interception"
+  | Item_blocker -> "Item Blocker"
   | Medical_kit _ -> "Medical Kit"
   | Poisonous_dart _ -> "Poisonous Dart"
   | Pocket_knife _ -> "Pocket Knife"
@@ -49,7 +49,7 @@ let to_string t : string =
 let equal item1 item2 : bool =
   match item1, item2 with
   | Observer, Observer
-  | Item_interception, Item_interception
+  | Item_blocker, Item_blocker
   | Medical_kit _, Medical_kit _
   | Poisonous_dart _, Poisonous_dart _
   | Pocket_knife _, Pocket_knife _
@@ -61,7 +61,7 @@ let equal item1 item2 : bool =
 let get_two_random_items_no_duplicates () : t * t =
   let possible_items =
     [ observer
-    ; item_interception
+    ; item_blocker
     ; medical_kit
     ; poisonous_dart
     ; pocket_knife

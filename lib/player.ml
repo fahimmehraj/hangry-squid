@@ -1,18 +1,12 @@
 open! Core
 
-module T = struct
-  type t =
-    { health : int (* maybe restricted *)
-    ; inventory : Item.t list
-    ; is_alive : bool
-    ; name : string
-    }
-  [@@deriving sexp, compare]
-end
-
-include T
-
-module PlayerMap = Map.Make(T)
+type t =
+  { health : int
+  ; inventory : Item.t list
+  ; is_alive : bool
+  ; name : string
+  }
+[@@deriving sexp]
 
 let default_health = 100
 let default_inventory = []

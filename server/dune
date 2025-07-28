@@ -1,0 +1,5 @@
+(library
+ (name server)
+ (preprocess
+  (pps ppx_jane))
+ (libraries hangry_squid async core))
