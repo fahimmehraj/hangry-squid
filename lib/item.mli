@@ -16,5 +16,7 @@ val poisonous_dart : t
 val pocket_knife : t
 val gamblers_potion : t
 val to_string : t -> string
+val description : t -> string
+val image : t -> string
 val equal : t -> t -> bool
 val get_two_random_items_no_duplicates : unit -> t * t
