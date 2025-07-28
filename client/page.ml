@@ -14,16 +14,16 @@ type t =
 let parse_exn ({ path; _ } : Url_var.Components.t) : t =
   print_endline path;
   match path with
-  | "client/" -> Waiting_room
-  | "client/rules/" -> Rules
-  | "client/negotiation" -> Negotiation
+  | "" | "/" -> Waiting_room
+  | "rules/" -> Rules
+  | "negotiation" -> Negotiation
   | _ -> Waiting_room
 ;;
 
 let unparse t : Url_var.Components.t =
   match t with
-  | Waiting_room -> Url_var.Components.create ~path:"client/" ()
-  | Rules -> Url_var.Components.create ~path:"client/rules/" ()
-  | Negotiation -> Url_var.Components.create ~path:"client/negotiation" ()
-  | _ -> Url_var.Components.create ~path:"client/whatever" ()
+  | Waiting_room -> Url_var.Components.create ~path:"/" ()
+  | Rules -> Url_var.Components.create ~path:"rules/" ()
+  | Negotiation -> Url_var.Components.create ~path:"negotiation" ()
+  | _ -> Url_var.Components.create ~path:"whatever" ()
 ;;

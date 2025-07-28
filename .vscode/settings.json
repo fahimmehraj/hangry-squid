@@ -1,0 +1,7 @@
+{
+    "liveServer.settings.root": "/client",
+    "liveServer.settings.file": "/",
+    "liveServer.settings.mount": [
+        ["/ep920", "./"]
+ ]
+}
