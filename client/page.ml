@@ -17,6 +17,7 @@ let parse_exn ({ path; _ } : Url_var.Components.t) : t =
   | "" | "/" -> Waiting_room
   | "rules/" -> Rules
   | "negotiation" -> Negotiation
+  | "select/" -> Item_selection
   | _ -> Waiting_room
 ;;
 
@@ -24,6 +25,7 @@ let unparse t : Url_var.Components.t =
   match t with
   | Waiting_room -> Url_var.Components.create ~path:"/" ()
   | Rules -> Url_var.Components.create ~path:"rules/" ()
+  | Item_selection -> Url_var.Components.create ~path:"select/" ()
   | Negotiation -> Url_var.Components.create ~path:"negotiation" ()
   | _ -> Url_var.Components.create ~path:"whatever" ()
 ;;

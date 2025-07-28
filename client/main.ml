@@ -8,7 +8,7 @@ let serve_route (url_var: Page.t Url_var.t) (local_ graph) =
   match%sub route with
   | Waiting_room -> Waiting_room.page url_var graph
   | Rules -> Rules.body url_var
-  | Negotiation -> Negotiation.body ()
+  | Negotiation -> Negotiation.body url_var
   | _ -> Waiting_room.page url_var graph
 ;;
 

@@ -47,29 +47,29 @@ let item { name; description; image_url } =
 let items =
   [ { name = "Medical Kit"
     ; description = "Restores 25 HP. Can be used on anyone"
-    ; image_url = "/client/assets/medical_kit.png"
+    ; image_url = "/assets/medical_kit.png"
     }
   ; { name = "Observer"
     ; description =
         "Allows you to see into any one person's inventory and action taken"
-    ; image_url = "/client/assets/observer.png"
+    ; image_url = "/assets/observer.png"
     }
   ; { name = "Poisonous Dart"
     ; description = "Deals 75 damage but has a 25% chance of missing"
-    ; image_url = "/client/assets/poison_arrow.png"
+    ; image_url = "/assets/poison_arrow.png"
     }
   ; { name = "Gamblers Potion"
     ; description = "60% to gain 60 HP\n40% to lose 40 HP"
-    ; image_url = "/client/assets/gamblers_potion.png"
+    ; image_url = "/assets/gamblers_potion.png"
     }
   ; { name = "Pocket Knife"
     ; description = "Deals 30 damage"
-    ; image_url = "/client/assets/pocket_knife.png"
+    ; image_url = "/assets/pocket_knife.png"
     }
   ; { name = "Item Interception"
     ; description =
         "Block one player from receiving an item in the next round"
-    ; image_url = "/client/assets/item_blocker.png"
+    ; image_url = "/assets/item_blocker.png"
     }
   ]
   |> List.map ~f:item

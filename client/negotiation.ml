@@ -1,13 +1,8 @@
 open! Core
 open Bonsai_web
+open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 (* open Bonsai.Let_syntax *)
-
-type item =
-  { name : string
-  ; description : string
-  ; image_url : string
-  }
 
 type party =
   | Me
@@ -23,39 +18,9 @@ let header =
 |}
 ;;
 
-let item { name; description; image_url } =
-  {%html|
-    <div class="item">
-      <img src=%{image_url#String}/>
-      <p>%{name#String}</p>
-      <p>%{description#String}</p>
-    </div>
-|}
-;;
-
 let items =
-  [ { name = "Pocket Knife"
-    ; description = "(25 damage)"
-    ; image_url = "/assets/pocket_knife.png"
-    }
-  ; { name = "Item Interception"
-    ; description = "Block next item for player"
-    ; image_url = "/assets/item_blocker.png"
-    }
-  ; { name = "Item Interception"
-    ; description = "Block next item for player"
-    ; image_url = "/assets/item_blocker.png"
-    }
-  ; { name = "Item Interception"
-    ; description = "Block next item for player"
-    ; image_url = "/assets/item_blocker.png"
-    }
-  ; { name = "Item Interception"
-    ; description = "Block next item for player"
-    ; image_url = "/assets/item_blocker.png"
-    }
-  ]
-  |> List.map ~f:item
+  [ Item.pocket_knife; Item.pocket_knife; Item.pocket_knife ]
+  |> List.map ~f:Components.item
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "inventory" ] ]
 ;;
 
@@ -75,6 +40,7 @@ let msg_bubble content ~who =
     align-self: %{bubble_alignment};
     align-items: center;
     border-radius: 12px;
+    font-family: "Inter";
   |}]
   in
   Vdom.Node.div
@@ -82,15 +48,12 @@ let msg_bubble content ~who =
     [ Vdom.Node.p [ Vdom.Node.text content ] ]
 ;;
 
-type player =
-  { name : string
-  ; health : int
-  }
-
 let players =
   List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
-  |> List.map ~f:(fun name -> { name; health = 75 })
-  |> List.map ~f:(fun { name; health } ->
+  |> List.map ~f:(fun name ->
+    { Player.name; health = 75; inventory = []; is_alive = true })
+  |> List.filter ~f:(fun { is_alive; _ } -> is_alive)
+  |> List.map ~f:(fun { name; health; _ } ->
     let green_end = Int.to_string (health - 5) ^ "%" in
     let red_start = Int.to_string health ^ "%" in
     let healthbar_styles =
@@ -122,7 +85,11 @@ let players =
         gap: 4px;
       |}]
         ]
-      [ Vdom.Node.p [ Vdom.Node.text name ]; healthbar ])
+      [ Vdom.Node.p
+          ~attrs:[ [%css {| font-family: "Inter"; |}] ]
+          [ Vdom.Node.text name ]
+      ; healthbar
+      ])
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -140,38 +107,6 @@ let players =
 let messages =
   [ msg_bubble "Yo" ~who:Other
   ; msg_bubble "I have a big knife" ~who:Other
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
   ; msg_bubble "Fr?" ~who:Me
   ; msg_bubble "Fr?" ~who:Me
   ; msg_bubble "Fr?" ~who:Me
@@ -253,27 +188,20 @@ let content =
     [ chat_window; items ]
 ;;
 
-let body () =
+let next_phase_button url_var =
+  Vdom.Node.button
+    ~attrs:
+      [ Vdom.Attr.on_click (fun _ ->
+          Url_var.set_effect url_var Page.Item_selection)
+      ]
+    [ Vdom.Node.text "next phase" ]
+;;
+
+let body url_var =
   Bonsai.return
     (Vdom.Node.div
        ~attrs:
          [ [%css {| height: 100%; display: flex; flex-direction: column; |}]
          ]
-       [ header; content ])
+       [ header; next_phase_button url_var; content ])
 ;;
-
-(* /* Frame 2610405 */
-
-/* Auto layout */
-display: flex;
-flex-direction: row;
-justify-content: center;
-align-items: center;
-padding: 6px 60px;
-gap: 10px;
-
-position: absolute;
-width: 298px;
-height: 42px;
-left: 27px;
-top: 73px; *)
