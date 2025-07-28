@@ -61,15 +61,15 @@ let%expect_test "test_empty_game_state" =
   print_s [%sexp (empty : Game_state.t)];
   [%expect
     {|
-    ((current_round 0) (players ()) (actions_taken_in_round ()) 
-     (public_results ()) (private_results ()))|}]
+    ((current_round 0) (current_phase Waiting_room) (players ()) 
+     (actions_taken_in_round ()) (public_results ()) (private_results ()))|}]
 ;;
 
 let%expect_test "test_add_player" =
   print_s [%sexp (one_player : Game_state.t)];
   [%expect
     {|
-    ((current_round 0) 
+    ((current_round 0) (current_phase Waiting_room)
      (players ((bob ((health 100) (inventory ()) (is_alive true) (name bob))))) 
      (actions_taken_in_round ()) (public_results ()) (private_results ())) |}]
 ;;
@@ -79,7 +79,7 @@ let%expect_test "test_add_duplicate" =
   print_s [%sexp (one_player : Game_state.t)];
   [%expect
     {|
-    ((current_round 0) 
+    ((current_round 0) (current_phase Waiting_room)
      (players ((bob ((health 100) (inventory ()) (is_alive true) (name bob))))) 
      (actions_taken_in_round ()) (public_results ()) (private_results ())) |}];
   let _ = Game_state.add_player one_player (Player.new_player "bob") in
@@ -91,7 +91,7 @@ let%expect_test "test_add_action" =
   print_s [%sexp (two_player_knife_used : Game_state.t)];
   [%expect
     {|
-      ((current_round 0)
+      ((current_round 0) (current_phase Waiting_room)
        (players
         ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
          (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
@@ -108,7 +108,7 @@ let%expect_test "test_apply_actions_taken" =
   print_s [%sexp (two_player_knife_used_results : Game_state.t)];
   [%expect
     {|
-      ((current_round 0)
+      ((current_round 0) (current_phase Waiting_room)
        (players
         ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
          (jeff ((health 70) (inventory ()) (is_alive true) (name jeff)))))
@@ -131,7 +131,7 @@ let%expect_test "test_knife_self" =
   print_s [%sexp (knife_self : Game_state.t)];
   [%expect
     {|
-      ((current_round 0)
+      ((current_round 0) (current_phase Waiting_room)
        (players ((bob ((health 70) (inventory ()) (is_alive true) (name bob)))))
        (actions_taken_in_round
         (((user bob) (recipient bob)
@@ -150,7 +150,7 @@ let%expect_test "test_observe_self" =
   print_s [%sexp (observe_self : Game_state.t)];
   [%expect
     {|
-      ((current_round 0)
+      ((current_round 0) (current_phase Waiting_room)
        (players ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))))
        (actions_taken_in_round (((user bob) (recipient bob) (item_used Observer))))
        (public_results ())
@@ -165,7 +165,7 @@ let%expect_test "test_observe_other" =
   print_s [%sexp (observe_jeff : Game_state.t)];
   [%expect
     {|
-      ((current_round 0)
+      ((current_round 0) (current_phase Waiting_room)
        (players
         ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
          (jeff ((health 70) (inventory ()) (is_alive true) (name jeff)))))
@@ -191,7 +191,7 @@ let%expect_test "test_observe_other" =
 let%expect_test "test_heal_after_knife" = 
   print_s [%sexp (heal_after_pocket_knife : Game_state.t)];
   [%expect {|
-    ((current_round 0)
+    ((current_round 0) (current_phase Waiting_room)
      (players
       ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
        (jeff ((health 95) (inventory ()) (is_alive true) (name jeff)))))
@@ -220,7 +220,7 @@ let%expect_test "test_heal_after_knife" =
 let%expect_test "test_gamblers_potion_add_health" = 
   print_s [%sexp (gamblers_potion 100 : Game_state.t)];
   [%expect {|
-    ((current_round 0)
+    ((current_round 0) (current_phase Waiting_room)
      (players
       ((bob ((health 130) (inventory ()) (is_alive true) (name bob)))
        (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
@@ -246,7 +246,7 @@ let%expect_test "test_gamblers_potion_add_health" =
 let%expect_test "test_gamblers_potion_remove_health" = 
   print_s [%sexp (gamblers_potion 77 : Game_state.t)];
   [%expect {|
-    ((current_round 0)
+    ((current_round 0) (current_phase Waiting_room)
      (players
       ((bob ((health 30) (inventory ()) (is_alive true) (name bob)))
        (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
@@ -272,7 +272,7 @@ let%expect_test "test_gamblers_potion_remove_health" =
 let%expect_test "test_compile_all_results" =
   print_s [%sexp (Game_state.compile_all_elimination_results two_player_knife_used : Game_state.t)];
   [%expect {|
-    ((current_round 0)
+    ((current_round 0) (current_phase Waiting_room)
      (players
       ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
        (jeff ((health 100) (inventory ()) (is_alive true) (name jeff)))))
@@ -289,7 +289,7 @@ let%expect_test "test_compile_all_results_multiple knives" =
   let g = Fn.apply_n_times ~n:5 (fun game_state -> Game_state.add_action game_state pocket_knife_action) two_player_knife_used |> Game_state.apply_actions_taken in
   print_s [%sexp (Game_state.compile_all_elimination_results g : Game_state.t)];
   [%expect {|
-    ((current_round 0)
+    ((current_round 0) (current_phase Waiting_room)
      (players
       ((bob ((health 100) (inventory ()) (is_alive true) (name bob)))
        (jeff ((health 0) (inventory ()) (is_alive false) (name jeff)))))
