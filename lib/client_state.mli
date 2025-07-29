@@ -12,6 +12,4 @@ type t = {
 ; my_results : Round_result.t list
 ; item_choices : Item.t * Item.t 
 }
-[@@deriving sexp]
-
-
+[@@deriving sexp, bin_io]

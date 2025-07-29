@@ -6,7 +6,7 @@ type t = {
   remove_health : int;
   chance_of_removing : float;
 }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]
 
 val create :
   ?add_health:int ->

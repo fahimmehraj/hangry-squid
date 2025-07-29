@@ -15,14 +15,18 @@ module Client_ready = struct
     (* maybe change to custom*) [@@deriving sexp_of, bin_io]
   end
 
-  let rpc = 
-    Rpc.Rpc.create ~name:"ready-status" ~version:0 ~bin_query:Query.bin_t ~bin_response:Response.bin_t ~include_in_error_count:Only_on_exn
+  let rpc =
+    Rpc.Rpc.create
+      ~name:"ready-status"
+      ~version:0
+      ~bin_query:Query.bin_t
+      ~bin_response:Response.bin_t
+      ~include_in_error_count:Only_on_exn
+  ;;
 end
 
 (* handle refreshes, return game state in current phase *)
-module Client_message = struct
-
-end
+module Client_message = struct end
 
 module Client_connecting = struct
   module Query = struct
@@ -39,13 +43,11 @@ module Client_connecting = struct
       ~version:0
       ~bin_query:Query.bin_t
       ~bin_response:Response.bin_t
+      ~include_in_error_count:Only_on_exn
   ;;
 end
 
-(* handle refreshes, return game state in current phase *)
-module Client_message = struct end
-
-module Server_message = struct 
+module Server_message = struct
   (* module Query = struct
     type t = {}
   end
@@ -55,4 +57,5 @@ module Server_message = struct
   end
 
   let rpc =  *)
+
 end

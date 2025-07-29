@@ -7,7 +7,7 @@ type t =
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
   | Gamblers_potion of Item_effect.t
-[@@deriving sexp]
+[@@deriving sexp, bin_io]
 
 let observer = Observer
 let item_blocker = Item_blocker
@@ -66,12 +66,13 @@ let description = function
 ;;
 
 let image = function
-| Observer -> "observer.png"
-| Item_blocker -> "item_blocker.png"
-| Medical_kit _ -> "medical_kit.png"
-| Poisonous_dart _ -> "poison_arrow.png"
-| Pocket_knife _ -> "pocket_knife.png"
-| Gamblers_potion _ -> "gamblers_potion.png"
+  | Observer -> "observer.png"
+  | Item_blocker -> "item_blocker.png"
+  | Medical_kit _ -> "medical_kit.png"
+  | Poisonous_dart _ -> "poison_arrow.png"
+  | Pocket_knife _ -> "pocket_knife.png"
+  | Gamblers_potion _ -> "gamblers_potion.png"
+;;
 
 let equal item1 item2 : bool =
   match item1, item2 with
