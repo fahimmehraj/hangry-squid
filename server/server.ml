@@ -14,19 +14,6 @@ let write_client_states_to_all (server_state_ref : Server_state.t ref) =
     Pipe.write_without_pushback_if_open writer client's_state)
 ;;
 
-let handle_ready_message
-  (server_state_ref : Server_state.t ref)
-  (query : Rpcs.Client_message.Ready_status_change.t)
-  : Rpcs.Client_message.Response.t
-  =
-  match Game_state.name_taken !server_state_ref.game_state query.name with
-  | true ->
-    !server_state_ref.game_state
-    <- Game_state.ready_player !server_state_ref.game_state query;
-    Ok "OK"
-  | false -> Error "Player name isn't registered"
-;;
-
 let add_pipe_rpc_to_state
   (server_state_ref : Server_state.t ref)
   (name : string)
@@ -54,6 +41,49 @@ let handle_client_requesting_pipe
   | false -> add_pipe_rpc_to_state server_state_ref name
 ;;
 
+let handle_ready_message
+  (server_state_ref : Server_state.t ref)
+  (query : Rpcs.Client_message.Ready_status_change.t)
+  : Rpcs.Client_message.Response.t
+  =
+  match Game_state.name_taken !server_state_ref.game_state query.name with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.ready_player !server_state_ref.game_state query;
+    Ok "OK"
+  | false -> Error "Player name isn't registered"
+;;
+
+let handle_item_selection
+  (server_state_ref : Server_state.t ref)
+  (query : Rpcs.Client_message.Item_selection.t)
+  : Rpcs.Client_message.Response.t
+  =
+  !server_state_ref.game_state
+  <- Game_state.add_item_to_inventory !server_state_ref.game_state query;
+  Ok "OK"
+;;
+
+let handle_message
+  (server_state_ref : Server_state.t ref)
+  (message : Message.t)
+  : Rpcs.Client_message.Response.t
+  =
+  !server_state_ref.game_state
+  <- Game_state.add_message !server_state_ref.game_state message;
+  Ok "OK"
+;;
+
+let handle_item_used
+  (server_state_ref : Server_state.t ref)
+  (action : Action.t)
+  : Rpcs.Client_message.Response.t
+  =
+  !server_state_ref.game_state
+  <- Game_state.add_action !server_state_ref.game_state action;
+  Ok "OK"
+;;
+
 let handle_client_message
   (query : Rpcs.Client_message.Query.t)
   (server_state_ref : Server_state.t ref)
@@ -62,8 +92,12 @@ let handle_client_message
     match query with
     | Ready_status_change status_change ->
       handle_ready_message server_state_ref status_change
-    | _ -> Ok ""
+    | Item_selection item_selection ->
+      handle_item_selection server_state_ref item_selection
+    | Chat_message message -> handle_message server_state_ref message
+    | Item_used action -> handle_item_used server_state_ref action
   in
+  (* make sure that all clients have the newest game state *)
   write_client_states_to_all server_state_ref;
   response
 ;;

@@ -18,6 +18,8 @@ val create_empty_game : unit -> t
 val get_client_state_from_name : t -> string -> Client_state.t
 val name_taken : t -> string -> bool
 val ready_player : t -> Rpcs.Client_message.Ready_status_change.t -> t
+val add_item_to_inventory : t -> Rpcs.Client_message.Item_selection.t -> t
+val add_message : t -> Message.t -> t
 val add_player : t -> Player.t -> t
 val add_action : t -> Action.t -> t
 val apply_actions_taken : t -> t

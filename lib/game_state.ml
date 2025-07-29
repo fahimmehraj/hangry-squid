@@ -28,6 +28,12 @@ let create_empty_game () =
   }
 ;;
 
+let get_private_messages t name =
+  match Map.find t.private_messages name with
+  | None -> String.Map.empty
+  | Some map -> map
+;;
+
 let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   let current_round = t.current_round in
   let current_phase = t.current_phase in
@@ -41,11 +47,7 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   in
   let ready_players = t.ready_players in
   let public_messages = t.public_messages in
-  let my_messages =
-    match Map.find t.private_messages name with
-    | None -> String.Map.empty
-    | Some map_from_name -> map_from_name
-  in
+  let my_messages = get_private_messages t name in
   let public_results = t.public_results in
   let my_results =
     match Map.find t.private_results name with
@@ -88,6 +90,54 @@ let ready_player t (query : Rpcs.Client_message.Ready_status_change.t) =
       let new_ready_players = query.name :: t.ready_players in
       { t with ready_players = new_ready_players })
     else t
+;;
+
+let add_item_to_inventory t (query : Rpcs.Client_message.Item_selection.t) =
+  match Map.find t.players query.name with
+  | None -> t
+  | Some player ->
+    let new_inventory = query.item :: player.inventory in
+    let new_player = { player with inventory = new_inventory } in
+    { t with players = Map.set t.players ~key:query.name ~data:new_player }
+;;
+
+let update_message_map map key message =
+  let new_messages =
+    match Map.find map key with
+    | None -> [ message ]
+    | Some exchanged_messages -> message :: exchanged_messages
+  in
+  Map.set map ~key ~data:new_messages
+;;
+
+let update_private_messages t ~map ~key =
+  let new_private_messages = Map.set t.private_messages ~key ~data:map in
+  { t with private_messages = new_private_messages }
+;;
+
+let add_message t (message : Message.t) =
+  let sender = message.sender in
+  let recipient = message.recipient in
+  let recipient =
+    match recipient with
+    | None ->
+      failwith
+        "Cannot add a message between two players: missing recipient. Only \
+         should be omitted if sending a public message"
+    | Some recipient -> recipient
+  in
+  let sender_message_map = get_private_messages t sender in
+  let recipient_message_map = get_private_messages t recipient in
+  (* check if the sender has ever sent messages to the recipient before *)
+  let sender's_new_message_map =
+    update_message_map sender_message_map recipient message
+  in
+  (* and vice versa *)
+  let recipient's_new_message_map =
+    update_message_map recipient_message_map sender message
+  in
+  update_private_messages t ~map:sender's_new_message_map ~key:sender
+  |> update_private_messages ~map:recipient's_new_message_map ~key:recipient
 ;;
 
 let add_player t (player : Player.t) =
