@@ -19,7 +19,7 @@ let header =
 ;;
 
 let items =
-  [ Item.pocket_knife; Item.pocket_knife; Item.pocket_knife ]
+  [ Item.pocket_knife; Item.pocket_knife; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife]
   |> List.map ~f:Components.item
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "inventory" ] ]
 ;;
@@ -51,7 +51,7 @@ let msg_bubble content ~who =
 let players =
   List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
   |> List.map ~f:(fun name ->
-    { Player.name; health = 75; inventory = []; is_alive = true })
+    { Restricted_player_view.name; health = 75; is_alive = true })
   |> List.filter ~f:(fun { is_alive; _ } -> is_alive)
   |> List.map ~f:(fun { name; health; _ } ->
     let green_end = Int.to_string (health - 5) ^ "%" in
@@ -110,6 +110,29 @@ let messages =
   ; msg_bubble "Fr?" ~who:Me
   ; msg_bubble "Fr?" ~who:Me
   ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
+  ; msg_bubble "Fr?" ~who:Me
   ]
   |> Vdom.Node.div
        ~attrs:
@@ -130,7 +153,7 @@ let reply_box =
       [ [%css
           {|
     position: sticky;
-    bottom: 4px;
+    bottom: 0;
     width: 75%;
     box-sizing: border-box;
     margin-left: 4px;
@@ -147,7 +170,8 @@ let messages_window =
     ~attrs:
       [ [%css
           {|
-    position: relative;
+    display: flex;
+    flex-direction: column;
     flex-grow: 1;
     overflow: auto;
 
@@ -171,6 +195,22 @@ let chat_window =
     [ players; messages_window ]
 ;;
 
+let chat_window_with_header =
+  Vdom.Node.div ~attrs:[[%css {|
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  |}]]
+  [ Vdom.Node.h2 [Vdom.Node.text "Chat"] ; chat_window]
+
+let inventory_window_with_header =
+  Vdom.Node.div ~attrs:[[%css {|
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  |}]]
+  [ Vdom.Node.h2 [Vdom.Node.text "Inventory"] ; items]
+
 let content =
   Vdom.Node.div
     ~attrs:
@@ -185,14 +225,14 @@ let content =
     margin: 16px;
   |}]
       ]
-    [ chat_window; items ]
+    [ chat_window_with_header; inventory_window_with_header ]
 ;;
 
 let next_phase_button url_var =
   Vdom.Node.button
     ~attrs:
       [ Vdom.Attr.on_click (fun _ ->
-          Url_var.set_effect url_var Page.Item_selection)
+          Url_var.set_effect url_var Page.Action)
       ]
     [ Vdom.Node.text "next phase" ]
 ;;

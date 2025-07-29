@@ -15,17 +15,20 @@ let parse_exn ({ path; _ } : Url_var.Components.t) : t =
   print_endline path;
   match path with
   | "" | "/" -> Waiting_room
-  | "rules/" -> Rules
+  | "rules" -> Rules
   | "negotiation" -> Negotiation
-  | "select/" -> Item_selection
-  | _ -> Waiting_room
+  | "select" -> Item_selection
+  | "action" -> Action
+  | "outcome" -> Outcome
+  | _ -> failwith "Unknown Path"
 ;;
 
 let unparse t : Url_var.Components.t =
   match t with
   | Waiting_room -> Url_var.Components.create ~path:"/" ()
-  | Rules -> Url_var.Components.create ~path:"rules/" ()
-  | Item_selection -> Url_var.Components.create ~path:"select/" ()
+  | Rules -> Url_var.Components.create ~path:"rules" ()
+  | Item_selection -> Url_var.Components.create ~path:"select" ()
   | Negotiation -> Url_var.Components.create ~path:"negotiation" ()
-  | _ -> Url_var.Components.create ~path:"whatever" ()
+  | Action -> Url_var.Components.create ~path:"action" ()
+  | Outcome -> Url_var.Components.create ~path:"outcome" ()
 ;;

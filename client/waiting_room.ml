@@ -26,9 +26,9 @@ let player_in_waiting_room name avatar_url =
       {|
     width: 200px;
   height: 200px;
-  border-radius: 50%; /* Makes the image circular */
-  object-fit: cover; /* Ensures the image covers the area without distortion */
-  display: block; /* Removes extra space below the image if it's inline */
+  border-radius: 50%; 
+  object-fit: cover; 
+  display: block; 
   |}]
   in
   Vdom.Node.div
