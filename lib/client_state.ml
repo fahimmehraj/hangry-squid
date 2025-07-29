@@ -1,5 +1,6 @@
 open Core
 
+(* add timestamp for when the phase started *)
 (* add representation of previous results for *)
 type t =
   { current_round : int
@@ -12,19 +13,6 @@ type t =
   ; public_results : Round_result.t list
   ; my_results : Round_result.t list
   ; item_choices : (Item.t * Item.t) option
+  ; my_name : string
   }
 [@@deriving sexp, bin_io]
-
-let empty =
-  { current_round = 0
-  ; current_phase = Waiting_room
-  ; my_inventory = []
-  ; players = []
-  ; ready_players = []
-  ; public_messages = []
-  ; my_messages = String.Map.empty
-  ; public_results = []
-  ; my_results = []
-  ; item_choices = None
-  }
-;;

@@ -50,6 +50,8 @@ let handle_ready_message
   | true ->
     !server_state_ref.game_state
     <- Game_state.ready_player !server_state_ref.game_state query;
+    (* check if everyone is ready *)
+      start_round |> don't_wait_for;
     Ok "OK"
   | false -> Error "Player name isn't registered"
 ;;
@@ -59,9 +61,16 @@ let handle_item_selection
   (query : Rpcs.Client_message.Item_selection.t)
   : Rpcs.Client_message.Response.t
   =
-  !server_state_ref.game_state
-  <- Game_state.add_item_to_inventory !server_state_ref.game_state query;
-  Ok "OK"
+  match
+    Game_phase.equal
+      Game_phase.Item_selection
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_item_to_inventory !server_state_ref.game_state query;
+    Ok "OK"
+  | false -> Error "It is not currently the item selection phase"
 ;;
 
 let handle_message
@@ -69,9 +78,16 @@ let handle_message
   (message : Message.t)
   : Rpcs.Client_message.Response.t
   =
-  !server_state_ref.game_state
-  <- Game_state.add_message !server_state_ref.game_state message;
-  Ok "OK"
+  match
+    Game_phase.equal
+      Game_phase.Negotiation
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_message !server_state_ref.game_state message;
+    Ok "OK"
+  | false -> Error "It is not currently the negotiation phase"
 ;;
 
 let handle_item_used
@@ -79,9 +95,16 @@ let handle_item_used
   (action : Action.t)
   : Rpcs.Client_message.Response.t
   =
-  !server_state_ref.game_state
-  <- Game_state.add_action !server_state_ref.game_state action;
-  Ok "OK"
+  match
+    Game_phase.equal
+      Game_phase.Item_usage
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_action !server_state_ref.game_state action;
+    Ok "OK"
+  | false -> Error "It is not currently the item usage phase"
 ;;
 
 let handle_client_message

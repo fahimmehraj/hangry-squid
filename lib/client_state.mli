@@ -11,7 +11,6 @@ type t =
   ; public_results : Round_result.t list
   ; my_results : Round_result.t list
   ; item_choices : (Item.t * Item.t) option
+  ; my_name : string
   }
 [@@deriving sexp, bin_io]
-
-val empty : t
