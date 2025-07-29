@@ -16,3 +16,54 @@ let item item =
 |}
 ;;
 
+let healthbar name health =
+  let green_end = Int.to_string (health - 5) ^ "%" in
+  let red_start = Int.to_string health ^ "%" in
+  let healthbar_styles =
+    [%css
+      {|
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 2px 2px;
+          width: 150px;
+          height: 20px;
+          background: linear-gradient(90deg, #9DD593 %{green_end}, #F7A0A0 %{red_start});
+          border: 1px solid #ccc;
+    |}]
+  in
+  let healthbar =
+    Vdom.Node.div
+      ~attrs:[ healthbar_styles ]
+      [ Vdom.Node.p [ Vdom.Node.text red_start ] ]
+  in
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      |}]
+      ]
+    [ Vdom.Node.p
+        ~attrs:[ [%css {| font-family: "Inter"; |}] ]
+        [ Vdom.Node.text name ]
+    ; healthbar
+    ]
+;;
+
+let header name health ~phase_name ~seconds_left  =
+  {%html|
+  <div class="header">
+    <div class="header-row">
+      <h1>Hangry Games</h1>
+      %{healthbar name health}
+    </div>
+    <p>%{phase_name#String}</p>
+    <p>%{seconds_left#Int} seconds left in the current phase</p>
+  </div>
+|}
+;;

@@ -76,10 +76,6 @@ let items =
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "items" ] ]
 ;;
 
-let next_phase_button url_var = Vdom.Node.button 
-  ~attrs:[ Vdom.Attr.on_click (fun _ -> Url_var.set_effect url_var Page.Item_selection)]
-[ Vdom.Node.text "next phase" ]
-
 let content = Vdom.Node.div [ rules; items ]
 
 (* let example_items =
@@ -93,4 +89,4 @@ let content = Vdom.Node.div [ rules; items ]
 |}
 ;; *)
 
-let body url_var = Bonsai.return (Vdom.Node.div [ header; content; next_phase_button url_var ])
+let body () = Bonsai.return (Vdom.Node.div [ header; content; ])

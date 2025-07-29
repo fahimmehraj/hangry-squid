@@ -12,10 +12,10 @@ let players =
 
 let _dummy_state : Client_state.t =
   { current_round = 1
-  ; current_phase = Waiting_room
+  ; current_phase = Rules
   ; my_inventory = [ Item.pocket_knife ]
   ; players
-  ; ready_players = List.map players ~f:(fun p -> p.name)
+  ; ready_players = [ "Player 2" ; "Player 3"]
   ; public_messages = []
   ; my_messages = String.Map.empty
   ; public_results = []
@@ -24,17 +24,21 @@ let _dummy_state : Client_state.t =
   }
 ;;
 
-let serve_route (url_var : Page.t Url_var.t) (local_ graph) =
-  let route = Url_var.value url_var in
-  match%sub route with
-  | Waiting_room -> Waiting_room.page url_var graph
-  | Rules -> Rules.body url_var
-  | Item_selection -> Select.body url_var
-  | Negotiation -> Negotiation.body url_var
-  | Round_results -> Outcome.body url_var
-  | Game_results -> Game_over.body url_var
-  | Item_usage -> Use_item.body url_var
+let serve_route (current_state : Client_state.t Bonsai.t) (local_ graph) =
+  (* let route = Url_var.value url_var in *)
+  let%sub { current_phase; _ } = current_state in
+  match%sub current_phase with
+    | Waiting_room -> Pages.Waiting_room.page current_state graph
+    | Rules -> Pages.Rules.body ()
+    | _ -> Pages.Waiting_room.page current_state graph
+    (* | Rules -> Rules.body graph
+    | Item_selection -> Select.body graph
+    | Negotiation -> Negotiation.body graph
+    | Round_results -> Outcome.body graph
+    | Game_results -> Game_over.body graph
+    | Item_usage -> Use_item.body graph *)
 ;;
 
-let url_var = Url_var.create_exn (module Page) ~fallback:Waiting_room
-let () = Bonsai_web.Start.start (serve_route url_var)
+(* let url_var = Url_var.create_exn (module Page) ~fallback:Waiting_room *)
+let current_state = Bonsai.return _dummy_state
+let () = Bonsai_web.Start.start (serve_route current_state)

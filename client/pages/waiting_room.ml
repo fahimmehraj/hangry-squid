@@ -1,7 +1,10 @@
 open! Core
 open Bonsai_web
 open Bonsai.Let_syntax
+open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
+
+let avatar_url = "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"
 
 let header =
   {%html|
@@ -12,7 +15,8 @@ let header =
 |}
 ;;
 
-let player_in_waiting_room name avatar_url =
+let player_in_waiting_room name ~is_ready =
+  let name_color = match is_ready with true -> "#32a852" | false -> "#ed5c8a" in
   let container_styles =
     [%css
       {|
@@ -34,15 +38,11 @@ let player_in_waiting_room name avatar_url =
   Vdom.Node.div
     ~attrs:[ container_styles ]
     [ Vdom.Node.img ~attrs:[ Vdom.Attr.src avatar_url; avatar_styles ] ()
-    ; Vdom.Node.h2 [ Vdom.Node.text name ]
+    ; Vdom.Node.h2 ~attrs:[ [%css {| color: %{name_color}; |}] ] [ Vdom.Node.text name ]
     ]
 ;;
 
-let next_phase_button url_var = Vdom.Node.button 
-  ~attrs:[ Vdom.Attr.on_click (fun _ -> Url_var.set_effect url_var Page.Rules)]
-[ Vdom.Node.text "next phase" ]
-
-let component (local_ graph) route =
+let component (local_ graph) =
   let state, inject =
     Bonsai.state_machine
       ~default_model:Int.Map.empty
@@ -72,13 +72,11 @@ let component (local_ graph) route =
   (* let debug =
     Vdom.Node.p [ Vdom.Node.text (Sexp.to_string (Page.sexp_of_t route)) ]
   in *)
-  Vdom.Node.div (add_button :: next_phase_button route :: counters)
+  Vdom.Node.div (add_button :: counters)
 ;;
 
-let players = List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
-
-let page route (local_ graph) =
-  let player_view =
+let page (client_state : Client_state.t Bonsai.t) (local_ graph) =
+  let player_view players ready_players =
     Vdom.Node.div
       ~attrs:
         [ [%css
@@ -89,12 +87,12 @@ let page route (local_ graph) =
     flex-wrap: wrap;
   |}]
         ]
-      (List.map players ~f:(fun player ->
+      (List.map players ~f:(fun (player: Restricted_player_view.t) ->
          player_in_waiting_room
-           player
-           "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"))
+           player.name ~is_ready:(List.mem ready_players player.name ~equal:String.equal)
+           ))
   in
-  let component = component graph route in
-  let%arr component in
-  Vdom.Node.div [ header; player_view; component ]
+  let component = component graph in
+  let%arr component and { players; ready_players; _ } = client_state in
+  Vdom.Node.div [ header; player_view players ready_players; component ]
 ;;
