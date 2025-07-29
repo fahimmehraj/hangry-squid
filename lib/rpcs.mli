@@ -12,3 +12,15 @@ module Client_ready : sig
 
   val rpc : (Query.t, Response.t) Rpc.Rpc.t
 end
+
+module Client_connecting : sig
+  module Query : sig
+    type t = { name : string } [@@deriving sexp_of, bin_io]
+  end
+
+  module Response : sig
+    type t = (Client_state.t, string) Result.t [@@deriving sexp_of, bin_io]
+  end
+
+  val rpc : (Query.t, Response.t) Rpc.Rpc.t
+end

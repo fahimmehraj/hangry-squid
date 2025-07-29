@@ -2,12 +2,6 @@ open! Core
 open Async
 open Hangry_squid
 
-(* let handle_send_message query server_state =
-   let recipient = query.recipient in
-   let alice_pipe = Server_state.find_pipe_for server_state ~recipient  in
-
-   ;; *)
-
 let handle_ready_message
       (query : Rpcs.Client_ready.Query.t)
       (server_state : Server_state.t)
@@ -21,6 +15,16 @@ let handle_ready_message
   | false -> Error "Player name isn't registered"
 ;;
 
+let handle_client_connecting (query : Rpcs.Client_connecting.Query.t) (server_state : Server_state.t)
+  : Rpcs.Client_connecting.Response.t
+  =
+  match Game_state.name_taken server_state.game_state query.name with 
+  | true -> 
+    Error "TODO"
+  | false ->
+    Rpc.Pipe_rpc.create ~name:"server-message" ~version:0
+;;
+
 let start_server port server_state =
   let%bind server =
     (* Rpc.Connection.create *)
@@ -31,8 +35,8 @@ let start_server port server_state =
            ~implementations:
              [ Rpc.Rpc.implement Rpcs.Client_ready.rpc (fun _ query ->
                  return (handle_ready_message query server_state))
-             (* ; Rpc.Rpc.implement Rpcs.Client_connecting.rpc (fun _ query ->
-                 return (handle_client_connecting query server_state)) *)
+             ; Rpc.Rpc.implement Rpcs.Client_connecting.rpc (fun _ query ->
+                 return (handle_client_connecting query server_state))
              ])
       ~initial_connection_state:(fun _ _ -> ())
       ~where_to_listen:(Tcp.Where_to_listen.of_port port)
