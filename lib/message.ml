@@ -1,5 +1,4 @@
 open! Core
-(* open! Core_unix *)
 
 type t =
   { sender : string
@@ -7,4 +6,4 @@ type t =
   ; contents : string
   ; timestamp : Time_ns.t
   }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]

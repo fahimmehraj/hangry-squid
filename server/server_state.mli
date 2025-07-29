@@ -1,3 +1,4 @@
+open! Core
 open Hangry_squid
 
 type t =

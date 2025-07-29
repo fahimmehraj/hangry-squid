@@ -1,3 +1,4 @@
+open! Core
 open Hangry_squid
 
 type t = {
@@ -10,5 +11,4 @@ let initialize_server_state () =
   {
     game_state = Game_state.create_empty_game ()
     ; rpc_pipes = Map.empty (module String)
-    ; ready_players = []
   }

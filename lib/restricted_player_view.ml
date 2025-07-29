@@ -5,7 +5,7 @@ type t =
   ; is_alive : bool
   ; name : string
   }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]
 
 let equal t1 t2 =
   String.equal t1.name t2.name
