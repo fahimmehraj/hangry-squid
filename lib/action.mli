@@ -5,4 +5,4 @@ type t =
   ; recipient : string
   ; item_used : Item.t
   }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]

@@ -1,5 +1,6 @@
 open Core
 
+(* add representation of previous results for *)
 type t =
   { current_round : int
   ; current_phase : Game_phase.t
@@ -10,6 +11,20 @@ type t =
   ; my_messages : Message.t list String.Map.t
   ; public_results : Round_result.t list
   ; my_results : Round_result.t list
-  ; item_choices : Item.t * Item.t
+  ; item_choices : (Item.t * Item.t) option
   }
 [@@deriving sexp, bin_io]
+
+let empty =
+  { current_round = 0
+  ; current_phase = Waiting_room
+  ; my_inventory = []
+  ; players = []
+  ; ready_players = []
+  ; public_messages = []
+  ; my_messages = String.Map.empty
+  ; public_results = []
+  ; my_results = []
+  ; item_choices = None
+  }
+;;
