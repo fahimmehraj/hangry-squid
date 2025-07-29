@@ -11,8 +11,8 @@ let equal t1 t2 =
   String.equal t1.name t2.name
 ;;
 
-let of_player player =
-  { health = player.health
-  ; is_alive = player.is_alive
-  ; name = player.name
+let of_player ({ health ; is_alive ; name ; _}: Player.t) =
+  { health = health
+  ; is_alive = is_alive
+  ; name = name
   }

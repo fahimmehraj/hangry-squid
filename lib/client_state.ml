@@ -1,3 +1,5 @@
+open Core
+
 type t = {
   current_round : int
 ; current_phase : Game_phase.t
