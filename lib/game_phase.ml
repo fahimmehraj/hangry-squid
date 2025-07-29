@@ -6,4 +6,4 @@ type t =
   | Item_usage
   | Round_results
   | Game_results
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]

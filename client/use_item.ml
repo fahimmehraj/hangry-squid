@@ -125,7 +125,7 @@ let next_phase_button url_var =
   Vdom.Node.button
     ~attrs:
       [ Vdom.Attr.on_click (fun _ ->
-          Url_var.set_effect url_var Page.Outcome)
+          Url_var.set_effect url_var Page.Round_results)
       ]
     [ Vdom.Node.text "next phase" ]
 ;;
