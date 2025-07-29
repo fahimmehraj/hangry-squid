@@ -41,6 +41,41 @@ let handle_client_requesting_pipe
   | false -> add_pipe_rpc_to_state server_state_ref name
 ;;
 
+let sleep seconds =
+  let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec seconds) in
+  return ()
+;;
+
+let change_game_phase (server_state_ref : Server_state.t ref) phase =
+  !server_state_ref.game_state
+  <- { !server_state_ref.game_state with
+       current_phase = phase
+     ; round_start = Time_ns.now ()
+     }
+;;
+
+let rec handle_round (server_state_ref : Server_state.t ref) ~(round : int)
+  : unit Deferred.t
+  =
+  !server_state_ref.game_state
+  <- { !server_state_ref.game_state with current_round = round };
+  change_game_phase server_state_ref Game_phase.Rules;
+  let%bind () = sleep (Game_phase.to_duration Game_phase.Rules) in
+  change_game_phase server_state_ref Game_phase.Item_selection;
+  let%bind () = sleep (Game_phase.to_duration Game_phase.Item_selection) in
+  change_game_phase server_state_ref Game_phase.Negotiation;
+  let%bind () = sleep (Game_phase.to_duration Game_phase.Negotiation) in
+  change_game_phase server_state_ref Game_phase.Item_usage;
+  let%bind () = sleep (Game_phase.to_duration Game_phase.Item_usage) in
+  change_game_phase server_state_ref Game_phase.Round_results;
+  let%bind () = sleep (Game_phase.to_duration Game_phase.Round_results) in
+  let players_left = Game_state.players_left !server_state_ref.game_state in
+  if players_left > 0
+  then handle_round server_state_ref ~round:(round + 1) |> don't_wait_for
+  else change_game_phase server_state_ref Game_phase.Game_results;
+  return ()
+;;
+
 let handle_ready_message
   (server_state_ref : Server_state.t ref)
   (query : Rpcs.Client_message.Ready_status_change.t)
@@ -51,7 +86,7 @@ let handle_ready_message
     !server_state_ref.game_state
     <- Game_state.ready_player !server_state_ref.game_state query;
     (* check if everyone is ready *)
-      start_round |> don't_wait_for;
+    handle_round server_state_ref ~round:1 |> don't_wait_for;
     Ok "OK"
   | false -> Error "Player name isn't registered"
 ;;

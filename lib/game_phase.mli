@@ -7,3 +7,5 @@ type t =
   | Round_results
   | Game_results
 [@@deriving sexp, bin_io, equal]
+
+val to_duration : t -> int

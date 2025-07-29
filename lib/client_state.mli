@@ -10,6 +10,7 @@ type t =
   ; public_results : Round_result.t list
   ; my_results : Round_result.t list
   ; item_choices : (Item.t * Item.t) option
+  ; round_start : Time_ns.t
   ; me : Player.t
   }
 [@@deriving sexp, bin_io]
