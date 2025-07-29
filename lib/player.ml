@@ -6,7 +6,7 @@ type t =
   ; is_alive : bool
   ; name : string
   }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]
 
 let default_health = 100
 let default_inventory = []

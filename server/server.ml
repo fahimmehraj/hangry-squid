@@ -2,47 +2,147 @@ open! Core
 open Async
 open Hangry_squid
 
-let handle_ready_message
-      (query : Rpcs.Client_ready.Query.t)
-      (server_state : Server_state.t)
-  : Rpcs.Client_ready.Response.t
+let write_client_states_to_all (server_state_ref : Server_state.t ref) =
+  Map.iteri !server_state_ref.rpc_pipes ~f:(fun ~key ~data ->
+    let player_name = key in
+    let writer = data in
+    let client's_state =
+      Game_state.get_client_state_from_name
+        !server_state_ref.game_state
+        player_name
+    in
+    Pipe.write_without_pushback_if_open writer client's_state)
+;;
+
+let add_pipe_rpc_to_state
+  (server_state_ref : Server_state.t ref)
+  (name : string)
   =
-  match Game_state.name_taken server_state.game_state query.name with
+  let reader, writer = Pipe.create () in
+  !server_state_ref.rpc_pipes
+  <- Map.set !server_state_ref.rpc_pipes ~key:name ~data:writer;
+  write_client_states_to_all server_state_ref;
+  Ok reader
+;;
+
+let handle_client_requesting_pipe
+  (query : Rpcs.State_pipe.Query.t)
+  (server_state_ref : Server_state.t ref)
+  =
+  let name = query.name in
+  match Game_state.name_taken !server_state_ref.game_state name with
   | true ->
-    server_state.game_state
-    <- Game_state.ready_player server_state.game_state query;
+    (match Map.find !server_state_ref.rpc_pipes name with
+     | Some pipe ->
+       if Pipe.is_closed pipe
+       then add_pipe_rpc_to_state server_state_ref name
+       else Error "Name already taken"
+     | None -> add_pipe_rpc_to_state server_state_ref name)
+  | false -> add_pipe_rpc_to_state server_state_ref name
+;;
+
+let handle_ready_message
+  (server_state_ref : Server_state.t ref)
+  (query : Rpcs.Client_message.Ready_status_change.t)
+  : Rpcs.Client_message.Response.t
+  =
+  match Game_state.name_taken !server_state_ref.game_state query.name with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.ready_player !server_state_ref.game_state query;
+    (* check if everyone is ready *)
+      start_round |> don't_wait_for;
     Ok "OK"
   | false -> Error "Player name isn't registered"
 ;;
 
-let handle_client_connecting (query : Rpcs.Client_connecting.Query.t) (server_state : Server_state.t)
-  : Rpcs.Client_connecting.Response.t
+let handle_item_selection
+  (server_state_ref : Server_state.t ref)
+  (query : Rpcs.Client_message.Item_selection.t)
+  : Rpcs.Client_message.Response.t
   =
-  match Game_state.name_taken server_state.game_state query.name with 
-  | true -> 
-    Error "TODO"
-  | false ->
-    Rpc.Pipe_rpc.create ~name:"server-message" ~version:0
+  match
+    Game_phase.equal
+      Game_phase.Item_selection
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_item_to_inventory !server_state_ref.game_state query;
+    Ok "OK"
+  | false -> Error "It is not currently the item selection phase"
 ;;
 
-let start_server port server_state =
+let handle_message
+  (server_state_ref : Server_state.t ref)
+  (message : Message.t)
+  : Rpcs.Client_message.Response.t
+  =
+  match
+    Game_phase.equal
+      Game_phase.Negotiation
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_message !server_state_ref.game_state message;
+    Ok "OK"
+  | false -> Error "It is not currently the negotiation phase"
+;;
+
+let handle_item_used
+  (server_state_ref : Server_state.t ref)
+  (action : Action.t)
+  : Rpcs.Client_message.Response.t
+  =
+  match
+    Game_phase.equal
+      Game_phase.Item_usage
+      !server_state_ref.game_state.current_phase
+  with
+  | true ->
+    !server_state_ref.game_state
+    <- Game_state.add_action !server_state_ref.game_state action;
+    Ok "OK"
+  | false -> Error "It is not currently the item usage phase"
+;;
+
+let handle_client_message
+  (query : Rpcs.Client_message.Query.t)
+  (server_state_ref : Server_state.t ref)
+  =
+  let response =
+    match query with
+    | Ready_status_change status_change ->
+      handle_ready_message server_state_ref status_change
+    | Item_selection item_selection ->
+      handle_item_selection server_state_ref item_selection
+    | Chat_message message -> handle_message server_state_ref message
+    | Item_used action -> handle_item_used server_state_ref action
+  in
+  (* make sure that all clients have the newest game state *)
+  write_client_states_to_all server_state_ref;
+  response
+;;
+
+let start_server port server_state_ref =
   let%bind server =
-    (* Rpc.Connection.create *)
     Rpc.Connection.serve
       ~implementations:
         (Rpc.Implementations.create_exn
+           ~on_exception:Rpc.On_exception.Close_connection
            ~on_unknown_rpc:`Close_connection
            ~implementations:
-             [ Rpc.Rpc.implement Rpcs.Client_ready.rpc (fun _ query ->
-                 return (handle_ready_message query server_state))
-             ; Rpc.Rpc.implement Rpcs.Client_connecting.rpc (fun _ query ->
-                 return (handle_client_connecting query server_state))
+             [ Rpc.Rpc.implement Rpcs.Client_message.rpc (fun _ query ->
+                 return (handle_client_message query server_state_ref))
+             ; Rpc.Pipe_rpc.implement Rpcs.State_pipe.rpc (fun _ query ->
+                 return
+                   (handle_client_requesting_pipe query server_state_ref))
              ])
       ~initial_connection_state:(fun _ _ -> ())
       ~where_to_listen:(Tcp.Where_to_listen.of_port port)
       ()
   in
-  (* Rpc.Connection.close server *)
   Tcp.Server.close_finished server
 ;;
 
@@ -52,6 +152,8 @@ let start_server_command =
     (let%map_open.Command server_port =
        flag "port" (required int) ~doc:"server <port> number"
      in
-     let authoritative_game_state = ref (Game_state.create_empty_game ()) in
+     let authoritative_game_state =
+       ref (Server_state.initialize_server_state ())
+     in
      fun () -> start_server server_port authoritative_game_state)
 ;;

@@ -7,7 +7,7 @@ type t =
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
   | Gamblers_potion of Item_effect.t
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]
 
 let observer = Observer
 let item_blocker = Item_blocker
@@ -72,18 +72,6 @@ let image = function
   | Poisonous_dart _ -> "poison_arrow.png"
   | Pocket_knife _ -> "pocket_knife.png"
   | Gamblers_potion _ -> "gamblers_potion.png"
-;;
-
-let equal item1 item2 : bool =
-  match item1, item2 with
-  | Observer, Observer
-  | Item_blocker, Item_blocker
-  | Medical_kit _, Medical_kit _
-  | Poisonous_dart _, Poisonous_dart _
-  | Pocket_knife _, Pocket_knife _
-  | Gamblers_potion _, Gamblers_potion _ ->
-    true
-  | _, _ -> false
 ;;
 
 let get_two_random_items_no_duplicates () : t * t =

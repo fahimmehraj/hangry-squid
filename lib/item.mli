@@ -7,7 +7,7 @@ type t =
   | Poisonous_dart of Item_effect.t
   | Pocket_knife of Item_effect.t
   | Gamblers_potion of Item_effect.t
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]
 
 val observer : t
 val item_blocker : t
@@ -18,5 +18,4 @@ val gamblers_potion : t
 val to_string : t -> string
 val description : t -> string
 val image : t -> string
-val equal : t -> t -> bool
 val get_two_random_items_no_duplicates : unit -> t * t

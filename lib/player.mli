@@ -6,7 +6,7 @@ type t =
   ; is_alive : bool
   ; name : string
   }
-[@@deriving sexp]
+[@@deriving sexp, bin_io]
 
 val equal : t -> t -> bool
 val new_player : string -> t

@@ -7,9 +7,10 @@ type t =
   ; ready_players : string list
   ; actions_taken_in_round : Action.t list
   ; public_messages : Message.t list
-  ; private_messages : ((Message.t list) String.Map.t) String.Map.t
+  ; private_messages : Message.t list String.Map.t String.Map.t
   ; public_results : Round_result.t list
   ; private_results : Round_result.t list String.Map.t
+  ; item_choices_by_user : (Item.t * Item.t) option String.Map.t
   }
 [@@deriving sexp]
 
@@ -23,26 +24,59 @@ let create_empty_game () =
   ; private_messages = String.Map.empty
   ; public_results = []
   ; private_results = Map.empty (module String)
+  ; item_choices_by_user = Map.empty (module String)
   }
 ;;
 
-let get_private_messages_by_user t name =
-  match Map.find t.private_messages name with 
+let get_private_messages t name =
+  match Map.find t.private_messages name with
   | None -> String.Map.empty
-  | Some map_from_name -> map_from_name
+  | Some map -> map
 ;;
 
-let get_private_results_by_user t name =
-  match Map.find t.private_results name with 
-  | None -> []
-  | Some results -> results
+let get_client_state_from_name (t : t) (name : string) : Client_state.t =
+  let current_round = t.current_round in
+  let current_phase = t.current_phase in
+  let players =
+    Map.data t.players |> List.map ~f:Restricted_player_view.of_player
+  in
+  let ready_players = t.ready_players in
+  let public_messages = t.public_messages in
+  let my_messages = get_private_messages t name in
+  let public_results = t.public_results in
+  let my_results =
+    match Map.find t.private_results name with
+    | None -> []
+    | Some results -> results
+  in
+  let item_choices =
+    match Map.find t.item_choices_by_user name with
+    | None -> None
+    | Some choice -> choice
+  in
+  let me = 
+    match Map.find t.players name with 
+    | None -> failwith "Player not found"
+    | Some player -> player
+  in
+  { current_round
+  ; current_phase
+  ; players
+  ; ready_players
+  ; public_messages
+  ; my_messages
+  ; public_results
+  ; my_results
+  ; item_choices
+  ; me 
+  }
 ;;
 
 let name_taken t name =
   match Map.find t.players name with None -> false | Some _ -> true
 ;;
 
-let ready_player t (query : Rpcs.Client_ready.Query.t) =
+let ready_player t (query : Rpcs.Client_message.Ready_status_change.t) =
   match query.is_ready with
   | false ->
     let new_ready_players =
@@ -56,6 +90,54 @@ let ready_player t (query : Rpcs.Client_ready.Query.t) =
       let new_ready_players = query.name :: t.ready_players in
       { t with ready_players = new_ready_players })
     else t
+;;
+
+let add_item_to_inventory t (query : Rpcs.Client_message.Item_selection.t) =
+  match Map.find t.players query.name with
+  | None -> t
+  | Some player ->
+    let new_inventory = query.item :: player.inventory in
+    let new_player = { player with inventory = new_inventory } in
+    { t with players = Map.set t.players ~key:query.name ~data:new_player }
+;;
+
+let update_message_map map key message =
+  let new_messages =
+    match Map.find map key with
+    | None -> [ message ]
+    | Some exchanged_messages -> message :: exchanged_messages
+  in
+  Map.set map ~key ~data:new_messages
+;;
+
+let update_private_messages t ~map ~key =
+  let new_private_messages = Map.set t.private_messages ~key ~data:map in
+  { t with private_messages = new_private_messages }
+;;
+
+let add_message t (message : Message.t) =
+  let sender = message.sender in
+  let recipient = message.recipient in
+  let recipient =
+    match recipient with
+    | None ->
+      failwith
+        "Cannot add a message between two players: missing recipient. Only \
+         should be omitted if sending a public message"
+    | Some recipient -> recipient
+  in
+  let sender_message_map = get_private_messages t sender in
+  let recipient_message_map = get_private_messages t recipient in
+  (* check if the sender has ever sent messages to the recipient before *)
+  let sender's_new_message_map =
+    update_message_map sender_message_map recipient message
+  in
+  (* and vice versa *)
+  let recipient's_new_message_map =
+    update_message_map recipient_message_map sender message
+  in
+  update_private_messages t ~map:sender's_new_message_map ~key:sender
+  |> update_private_messages ~map:recipient's_new_message_map ~key:recipient
 ;;
 
 let add_player t (player : Player.t) =
@@ -204,9 +286,9 @@ let apply_gamblers_potion t (action : Action.t) (item_effect : Item_effect.t)
 ;;
 
 let add_successful_item_use_message
-      t
-      (action : Action.t)
-      (health_change : int)
+  t
+  (action : Action.t)
+  (health_change : int)
   =
   let user = Map.find_exn t.players action.user
   and recipient = Map.find_exn t.players action.recipient
@@ -355,5 +437,3 @@ let players_left t =
     ignore key;
     if data.health <> 0 then acc + 1 else acc)
 ;;
-
-
