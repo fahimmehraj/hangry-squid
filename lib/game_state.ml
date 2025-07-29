@@ -37,11 +37,6 @@ let get_private_messages t name =
 let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   let current_round = t.current_round in
   let current_phase = t.current_phase in
-  let my_inventory =
-    match Map.find t.players name with
-    | None -> []
-    | Some player -> player.inventory
-  in
   let players =
     Map.data t.players |> List.map ~f:Restricted_player_view.of_player
   in
@@ -59,9 +54,13 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
     | None -> None
     | Some choice -> choice
   in
+  let me = 
+    match Map.find t.players name with 
+    | None -> failwith "Player not found"
+    | Some player -> player
+  in
   { current_round
   ; current_phase
-  ; my_inventory
   ; players
   ; ready_players
   ; public_messages
@@ -69,6 +68,7 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   ; public_results
   ; my_results
   ; item_choices
+  ; me 
   }
 ;;
 
