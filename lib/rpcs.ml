@@ -46,7 +46,7 @@ end
 module Client_message = struct end
 
 module Server_message = struct 
-  module Query = struct
+  (* module Query = struct
     type t = {}
   end
 
@@ -54,5 +54,5 @@ module Server_message = struct
     type t = {}
   end
 
-  let rpc = 
+  let rpc =  *)
 end
