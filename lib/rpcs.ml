@@ -20,6 +20,7 @@ module Client_message = struct
 
   module Query = struct
     type t =
+      | New_player of string
       | Ready_status_change of Ready_status_change.t
       | Item_selection of Item_selection.t
       | Chat_message of Message.t

@@ -6,7 +6,8 @@ let handle_client_requesting_client_state
   (query : Rpcs.Poll_client_state.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
-  Game_state.get_client_state_from_name !authoritative_game_state query.name
+  Game_state.get_client_state_from_name !authoritative_game_state query.name;
+  Polling_state_rpc.Client.dispatch
 ;;
 
 let sleep seconds =
@@ -30,6 +31,13 @@ let reset (authoritative_game_state : Game_state.t ref) =
      ; current_round = 0
      ; current_phase = Game_phase.Waiting_room
      }
+  ; return ()
+;;
+
+let phase authoritative_game_state phase_to_change_to = 
+  change_game_phase authoritative_game_state phase_to_change_to;
+  let%bind () = sleep (Game_phase.to_duration phase_to_change_to) in
+  return ()
 ;;
 
 let rec handle_round
@@ -39,27 +47,24 @@ let rec handle_round
   =
   authoritative_game_state
   := { !authoritative_game_state with current_round = round };
-  change_game_phase authoritative_game_state Game_phase.Rules;
-  let%bind () = sleep (Game_phase.to_duration Game_phase.Rules) in
-  change_game_phase authoritative_game_state Game_phase.Item_selection;
-  let%bind () = sleep (Game_phase.to_duration Game_phase.Item_selection) in
-  change_game_phase authoritative_game_state Game_phase.Negotiation;
-  let%bind () = sleep (Game_phase.to_duration Game_phase.Negotiation) in
-  change_game_phase authoritative_game_state Game_phase.Item_usage;
-  let%bind () = sleep (Game_phase.to_duration Game_phase.Item_usage) in
+  let%bind () = phase authoritative_game_state Rules in
+  update_player_item_choices authoritative_game_state;
+  let%bind () = phase authoritative_game_state Item_selection in
+  let%bind () = phase authoritative_game_state Negotiation in
+  let%bind () = phase authoritative_game_state Item_usage in
+  clear_results authoritative_game_state;
   authoritative_game_state
   := Game_state.apply_actions_taken !authoritative_game_state
      |> Game_state.compile_all_elimination_results;
-  change_game_phase authoritative_game_state Game_phase.Round_results;
-  let%bind () = sleep (Game_phase.to_duration Game_phase.Round_results) in
+  let%bind () = phase authoritative_game_state Round_results in
   let players_left = Game_state.players_left !authoritative_game_state in
   if players_left > 0 && round < 10
-  then handle_round authoritative_game_state ~round:(round + 1)
+  then (
+    handle_round authoritative_game_state ~round:(round + 1)
+  )
   else (
-    change_game_phase authoritative_game_state Game_phase.Game_results;
-    let%bind () = sleep (Game_phase.to_duration Game_phase.Game_results) in
-    reset authoritative_game_state;
-    return ())
+    let%bind () = phase authoritative_game_state Game_results in
+    reset authoritative_game_state)
 ;;
 
 let handle_ready_message
@@ -128,11 +133,27 @@ let handle_item_used
   | false -> Error "It is not currently the item usage phase"
 ;;
 
+let handle_new_player
+  (authoritative_game_state : Game_state.t ref)
+  (name : string)
+  : Rpcs.Client_message.Response.t
+  =
+  match Game_state.name_taken !authoritative_game_state name with
+  | true -> Error "Name already taken"
+  | false ->
+    authoritative_game_state
+    := Game_state.add_player
+         !authoritative_game_state
+         (Player.new_player name);
+    Ok "OK"
+;;
+
 let handle_client_message
   (query : Rpcs.Client_message.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
   match query with
+  | New_player name -> handle_new_player authoritative_game_state name
   | Ready_status_change status_change ->
     handle_ready_message authoritative_game_state status_change
   | Item_selection item_selection ->
