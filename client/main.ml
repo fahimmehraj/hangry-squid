@@ -12,15 +12,15 @@ let players =
 
 let _dummy_state : Client_state.t =
   { current_round = 1
-  ; current_phase = Rules
-  ; my_inventory = [ Item.pocket_knife ]
+  ; current_phase = Negotiation
   ; players
   ; ready_players = [ "Player 2" ; "Player 3"]
   ; public_messages = []
   ; my_messages = String.Map.empty
   ; public_results = []
   ; my_results = []
-  ; item_choices = Item.pocket_knife, Item.medical_kit
+  ; item_choices = Some (Item.pocket_knife, Item.medical_kit)
+  ; me = { name = "Player 1" ; is_alive = true ; inventory = [ Item.pocket_knife ] ; health = 100}
   }
 ;;
 
@@ -30,6 +30,7 @@ let serve_route (current_state : Client_state.t Bonsai.t) (local_ graph) =
   match%sub current_phase with
     | Waiting_room -> Pages.Waiting_room.page current_state graph
     | Rules -> Pages.Rules.body ()
+    | Negotiation -> Pages.Negotiation.body current_state graph
     | _ -> Pages.Waiting_room.page current_state graph
     (* | Rules -> Rules.body graph
     | Item_selection -> Select.body graph

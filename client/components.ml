@@ -17,7 +17,7 @@ let item item =
 ;;
 
 let healthbar name health =
-  let green_end = Int.to_string (health - 5) ^ "%" in
+  let green_end = Int.to_string (health - 1) ^ "%" in
   let red_start = Int.to_string health ^ "%" in
   let healthbar_styles =
     [%css
@@ -55,12 +55,14 @@ let healthbar name health =
     ]
 ;;
 
-let header name health ~phase_name ~seconds_left  =
+let header ({ name ; health; _}: Player.t) ~phase_name ~seconds_left  =
   {%html|
   <div class="header">
     <div class="header-row">
       <h1>Hangry Games</h1>
-      %{healthbar name health}
+      <div class="last-item">
+        %{healthbar name health}
+      </div>
     </div>
     <p>%{phase_name#String}</p>
     <p>%{seconds_left#Int} seconds left in the current phase</p>

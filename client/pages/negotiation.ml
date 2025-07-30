@@ -1,5 +1,6 @@
 open! Core
 open Bonsai_web
+open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 (* open Bonsai.Let_syntax *)
@@ -8,19 +9,8 @@ type party =
   | Me
   | Other
 
-let header =
-  {%html|
-  <div class="header">
-    <h1>Hangry Games</h1>
-    <p>Negotiation Phase</p>
-    <p>60 seconds left in the current phase</p>
-  </div>
-|}
-;;
-
-let items =
-  [ Item.pocket_knife; Item.pocket_knife; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife ; Item.pocket_knife]
-  |> List.map ~f:Components.item
+let inventory (player: Player.t)=
+  List.map player.inventory ~f:Components.item
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "inventory" ] ]
 ;;
 
@@ -48,48 +38,10 @@ let msg_bubble content ~who =
     [ Vdom.Node.p [ Vdom.Node.text content ] ]
 ;;
 
-let players =
-  List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
-  |> List.map ~f:(fun name ->
-    { Restricted_player_view.name; health = 75; is_alive = true })
-  |> List.filter ~f:(fun { is_alive; _ } -> is_alive)
-  |> List.map ~f:(fun { name; health; _ } ->
-    let green_end = Int.to_string (health - 5) ^ "%" in
-    let red_start = Int.to_string health ^ "%" in
-    let healthbar_styles =
-      [%css
-        {|
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 2px 2px;
-          width: 150px;
-          height: 20px;
-          background: linear-gradient(90deg, #9DD593 %{green_end}, #F7A0A0 %{red_start});
-          border: 1px solid #ccc;
-    |}]
-    in
-    let healthbar =
-      Vdom.Node.div
-        ~attrs:[ healthbar_styles ]
-        [ Vdom.Node.p [ Vdom.Node.text red_start ] ]
-    in
-    Vdom.Node.div
-      ~attrs:
-        [ [%css
-            {|
-        padding: 4px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      |}]
-        ]
-      [ Vdom.Node.p
-          ~attrs:[ [%css {| font-family: "Inter"; |}] ]
-          [ Vdom.Node.text name ]
-      ; healthbar
-      ])
+let players_list_element (players : Restricted_player_view.t list) =
+  List.filter players ~f:(fun { is_alive; _ } -> is_alive)
+  |> List.map ~f:(fun player ->
+    Components.healthbar player.name player.health)
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -180,7 +132,8 @@ let messages_window =
     [ messages; reply_box ]
 ;;
 
-let chat_window =
+let chat_window players my_messages public_messages =
+  let%arr players in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -192,26 +145,38 @@ let chat_window =
 
   |}]
       ]
-    [ players; messages_window ]
+    [ players_list_element players ; messages_window ]
 ;;
 
-let chat_window_with_header =
-  Vdom.Node.div ~attrs:[[%css {|
+let chat_window_with_header players my_messages public_messages =
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-  |}]]
-  [ Vdom.Node.h2 [Vdom.Node.text "Chat"] ; chat_window]
+  |}]
+      ]
+    [ Vdom.Node.h2 [ Vdom.Node.text "Chat" ]; chat_window players my_messages public_messages ]
+;;
 
-let inventory_window_with_header =
-  Vdom.Node.div ~attrs:[[%css {|
+let inventory_window_with_header (player : Player.t Bonsai.t) =
+  let%arr player in
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-  |}]]
-  [ Vdom.Node.h2 [Vdom.Node.text "Inventory"] ; items]
+  |}]
+      ]
+    [ Vdom.Node.h2 [ Vdom.Node.text "Inventory" ]; inventory player ]
+;;
 
-let content =
+let content (current_state: Client_state.t Bonsai.t) =
+  let%sub { me ; players ; my_messages ; public_messages } = current_state in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -225,23 +190,16 @@ let content =
     margin: 16px;
   |}]
       ]
-    [ chat_window_with_header; inventory_window_with_header ]
+    [ chat_window_with_header players my_messages public_messages; inventory_window_with_header me ]
 ;;
 
-let next_phase_button url_var =
-  Vdom.Node.button
+let body (current_state : Client_state.t Bonsai.t) (local_ _graph) =
+  let%sub { me; _ } = current_state in
+  let%arr me in
+  Vdom.Node.div
     ~attrs:
-      [ Vdom.Attr.on_click (fun _ ->
-          Url_var.set_effect url_var Page.Item_usage)
-      ]
-    [ Vdom.Node.text "next phase" ]
-;;
-
-let body url_var =
-  Bonsai.return
-    (Vdom.Node.div
-       ~attrs:
-         [ [%css {| height: 100%; display: flex; flex-direction: column; |}]
-         ]
-       [ header; next_phase_button url_var; content ])
+      [ [%css {| height: 100%; display: flex; flex-direction: column; |}] ]
+    [ Components.header me ~phase_name:"Negotiation Phase" ~seconds_left:60
+    ; content current_state
+    ]
 ;;

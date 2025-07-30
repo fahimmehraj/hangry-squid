@@ -18,6 +18,16 @@ body {
     flex-grow: 0;
 }
 
+.header-row {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+
 .item {
     display: flex;
     flex-direction: column;
@@ -25,7 +35,7 @@ body {
     width: 100px;
     align-items: center;
     border: 1px solid black;
-    max-height: 185px;
+    max-height: 200px;
     padding: 10px;
 }
 
