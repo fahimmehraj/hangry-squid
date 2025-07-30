@@ -36,7 +36,7 @@ module Client_message = struct
 
   let rpc =
     Rpc.Rpc.create
-      ~name:"ready-status"
+      ~name:"client-message"
       ~version:0
       ~bin_query:Query.bin_t
       ~bin_response:Response.bin_t
@@ -66,7 +66,7 @@ module Poll_client_state = struct
 
   let rpc =
     Polling_state_rpc.create
-      ~name:"ready-status"
+      ~name:"poll-client-state"
       ~version:0
       ~query_equal:[%equal: Query.t]
       ~bin_query:Query.bin_t

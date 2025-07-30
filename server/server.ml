@@ -6,8 +6,7 @@ let handle_client_requesting_client_state
   (query : Rpcs.Poll_client_state.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
-  Game_state.get_client_state_from_name !authoritative_game_state query.name;
-  Polling_state_rpc.Client.dispatch
+  Game_state.get_client_state_from_name !authoritative_game_state query.name
 ;;
 
 let sleep seconds =
@@ -23,21 +22,57 @@ let change_game_phase (authoritative_game_state : Game_state.t ref) phase =
      }
 ;;
 
-(* TODO *)
 let reset (authoritative_game_state : Game_state.t ref) =
+  let new_player_map =
+    Map.map !authoritative_game_state.players ~f:(fun player ->
+      Player.new_player player.name)
+  in
   authoritative_game_state
-  := { !authoritative_game_state with
-       ready_players = []
-     ; current_round = 0
-     ; current_phase = Game_phase.Waiting_room
-     }
-  ; return ()
+  := { (Game_state.create_empty_game ()) with players = new_player_map };
+  return ()
 ;;
 
-let phase authoritative_game_state phase_to_change_to = 
+let phase authoritative_game_state phase_to_change_to =
   change_game_phase authoritative_game_state phase_to_change_to;
   let%bind () = sleep (Game_phase.to_duration phase_to_change_to) in
   return ()
+;;
+
+let update_player_item_choices_and_round
+  (authoritative_game_state : Game_state.t ref)
+  new_round
+  =
+  let observers_used =
+    List.filter_map
+      !authoritative_game_state.actions_taken_in_round
+      ~f:(fun (action : Action.t) ->
+        match action.item_used with
+        | Item_blocker -> Some action.recipient
+        | Observer | Medical_kit _ | Poisonous_dart _ | Pocket_knife _
+        | Gamblers_potion _ ->
+          None)
+  in
+  let new_item_choices =
+    Map.mapi
+      !authoritative_game_state.item_choices_by_user
+      ~f:(fun ~key ~data ->
+        ignore data;
+        if List.mem observers_used key ~equal:String.equal
+        then None
+        else Some (Item.get_two_random_items_no_duplicates ()))
+  in
+  authoritative_game_state
+  := { !authoritative_game_state with
+       item_choices_by_user = new_item_choices
+     ; actions_taken_in_round = []
+     ; current_round = new_round
+     }
+;;
+
+let compute_round_results (authoritative_game_state : Game_state.t ref) =
+  authoritative_game_state
+  := Game_state.apply_actions_taken !authoritative_game_state
+     |> Game_state.compile_all_elimination_results
 ;;
 
 let rec handle_round
@@ -45,26 +80,28 @@ let rec handle_round
   ~(round : int)
   : unit Deferred.t
   =
-  authoritative_game_state
-  := { !authoritative_game_state with current_round = round };
-  let%bind () = phase authoritative_game_state Rules in
-  update_player_item_choices authoritative_game_state;
+  update_player_item_choices_and_round authoritative_game_state round;
   let%bind () = phase authoritative_game_state Item_selection in
   let%bind () = phase authoritative_game_state Negotiation in
   let%bind () = phase authoritative_game_state Item_usage in
-  clear_results authoritative_game_state;
-  authoritative_game_state
-  := Game_state.apply_actions_taken !authoritative_game_state
-     |> Game_state.compile_all_elimination_results;
+  compute_round_results authoritative_game_state;
   let%bind () = phase authoritative_game_state Round_results in
   let players_left = Game_state.players_left !authoritative_game_state in
   if players_left > 0 && round < 10
-  then (
-    handle_round authoritative_game_state ~round:(round + 1)
-  )
+  then handle_round authoritative_game_state ~round:(round + 1)
   else (
     let%bind () = phase authoritative_game_state Game_results in
     reset authoritative_game_state)
+;;
+
+let everyone_is_ready (authoritative_game_state : Game_state.t ref) =
+  List.length !authoritative_game_state.ready_players
+  = Map.length !authoritative_game_state.players
+;;
+
+let start_game (authoritative_game_state : Game_state.t ref) =
+  let%bind () = phase authoritative_game_state Rules in
+  handle_round authoritative_game_state ~round:1
 ;;
 
 let handle_ready_message
@@ -76,8 +113,8 @@ let handle_ready_message
   | true ->
     authoritative_game_state
     := Game_state.ready_player !authoritative_game_state query;
-    (* check if everyone is ready *)
-    handle_round authoritative_game_state ~round:1 |> don't_wait_for;
+    if everyone_is_ready authoritative_game_state
+    then start_game authoritative_game_state |> don't_wait_for;
     Ok "OK"
   | false -> Error "Player name isn't registered"
 ;;
