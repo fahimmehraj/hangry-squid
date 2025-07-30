@@ -5,4 +5,4 @@ type t =
   { player_in_question : string
   ; message : string
   }
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]

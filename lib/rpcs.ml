@@ -43,26 +43,33 @@ module Client_message = struct
   ;;
 end
 
-module State_pipe = struct
+module Poll_client_state = struct
   module Query = struct
-    type t = { name : string } [@@deriving sexp_of, bin_io]
+    type t = { name : string } [@@deriving sexp, bin_io, equal]
   end
 
   module Response = struct
-    type t = Client_state.t [@@deriving sexp_of, bin_io]
+    type t = Client_state.t [@@deriving sexp, bin_io, equal]
+
+    module Update = struct
+      type nonrec t = t [@@deriving sexp, bin_io, equal]
+    end
+
+    let diffs ~from ~to_ = to_
+    let update t update = update
   end
 
   module Error = struct
-    type t = string [@@deriving sexp_of, bin_io]
+    type t = string [@@deriving sexp, bin_io]
   end
 
   let rpc =
-    Rpc.Pipe_rpc.create
-      ~name:"server-message"
+    Polling_state_rpc.create
+      ~name:"ready-status"
       ~version:0
+      ~query_equal:[%equal: Query.t]
       ~bin_query:Query.bin_t
-      ~bin_response:Response.bin_t
-      ~bin_error:Error.bin_t
-      ()
+      (module Response)
   ;;
+  (* (module Diffable_polling_state_rpc_response.Polling_state_rpc_response.Make (Response)) *)
 end

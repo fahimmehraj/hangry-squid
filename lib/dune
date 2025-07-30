@@ -1,8 +1,15 @@
 (library
  (name hangry_squid)
- (libraries async_rpc_kernel async_kernel core)
+ (libraries
+  async_rpc_kernel
+  async_kernel
+  core
+  ; polling_state_rpc.diffable_polling_state_rpc_response
+  polling_state_rpc)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane 
+  ; ppx_diff.ppx_diff
+  )))
 
 (env
  (dev

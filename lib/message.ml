@@ -6,4 +6,4 @@ type t =
   ; contents : string
   ; timestamp : Time_ns.t
   }
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]

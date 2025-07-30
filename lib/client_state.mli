@@ -13,4 +13,4 @@ type t =
   ; round_start : Time_ns.t
   ; me : Player.t
   }
-[@@deriving sexp, bin_io]
+[@@deriving sexp, bin_io, equal]

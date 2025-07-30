@@ -2,7 +2,7 @@ open! Core
 open Async
 open Hangry_squid
 
-let write_client_states_to_all (server_state_ref : Server_state.t ref) =
+(* let write_client_states_to_all (server_state_ref : Server_state.t ref) =
   Map.iteri !server_state_ref.rpc_pipes ~f:(fun ~key ~data ->
     let player_name = key in
     let writer = data in
@@ -12,9 +12,9 @@ let write_client_states_to_all (server_state_ref : Server_state.t ref) =
         player_name
     in
     Pipe.write_without_pushback_if_open writer client's_state)
-;;
+;; *)
 
-let add_pipe_rpc_to_state
+(* let add_pipe_rpc_to_state
   (server_state_ref : Server_state.t ref)
   (name : string)
   =
@@ -23,9 +23,18 @@ let add_pipe_rpc_to_state
   <- Map.set !server_state_ref.rpc_pipes ~key:name ~data:writer;
   write_client_states_to_all server_state_ref;
   Ok reader
+;; *)
+
+let handle_client_requesting_client_state
+  (query : Rpcs.Poll_client_state.Query.t)
+  (server_state_ref : Server_state.t ref)
+  =
+  Game_state.get_client_state_from_name
+    !server_state_ref.game_state
+    query.name
 ;;
 
-let handle_client_requesting_pipe
+(* let handle_client_requesting_pipe
   (query : Rpcs.State_pipe.Query.t)
   (server_state_ref : Server_state.t ref)
   =
@@ -39,7 +48,7 @@ let handle_client_requesting_pipe
        else Error "Name already taken"
      | None -> add_pipe_rpc_to_state server_state_ref name)
   | false -> add_pipe_rpc_to_state server_state_ref name
-;;
+;; *)
 
 let sleep seconds =
   let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec seconds) in
@@ -51,6 +60,16 @@ let change_game_phase (server_state_ref : Server_state.t ref) phase =
   <- { !server_state_ref.game_state with
        current_phase = phase
      ; round_start = Time_ns.now ()
+     }
+;;
+
+(* TODO *)
+let reset (server_state_ref : Server_state.t ref) =
+  !server_state_ref.game_state
+  <- { !server_state_ref.game_state with
+       ready_players = []
+     ; current_round = 0
+     ; current_phase = Game_phase.Waiting_room
      }
 ;;
 
@@ -67,13 +86,19 @@ let rec handle_round (server_state_ref : Server_state.t ref) ~(round : int)
   let%bind () = sleep (Game_phase.to_duration Game_phase.Negotiation) in
   change_game_phase server_state_ref Game_phase.Item_usage;
   let%bind () = sleep (Game_phase.to_duration Game_phase.Item_usage) in
+  !server_state_ref.game_state
+  <- Game_state.apply_actions_taken !server_state_ref.game_state
+     |> Game_state.compile_all_elimination_results;
   change_game_phase server_state_ref Game_phase.Round_results;
   let%bind () = sleep (Game_phase.to_duration Game_phase.Round_results) in
   let players_left = Game_state.players_left !server_state_ref.game_state in
-  if players_left > 0
-  then handle_round server_state_ref ~round:(round + 1) |> don't_wait_for
-  else change_game_phase server_state_ref Game_phase.Game_results;
-  return ()
+  if players_left > 0 && round < 10
+  then handle_round server_state_ref ~round:(round + 1)
+  else (
+    change_game_phase server_state_ref Game_phase.Game_results;
+    let%bind () = sleep (Game_phase.to_duration Game_phase.Game_results) in
+    reset server_state_ref;
+    return ())
 ;;
 
 let handle_ready_message
@@ -156,7 +181,7 @@ let handle_client_message
     | Item_used action -> handle_item_used server_state_ref action
   in
   (* make sure that all clients have the newest game state *)
-  write_client_states_to_all server_state_ref;
+  (* write_client_states_to_all server_state_ref; *)
   response
 ;;
 
@@ -170,11 +195,19 @@ let start_server port server_state_ref =
            ~implementations:
              [ Rpc.Rpc.implement Rpcs.Client_message.rpc (fun _ query ->
                  return (handle_client_message query server_state_ref))
-             ; Rpc.Pipe_rpc.implement Rpcs.State_pipe.rpc (fun _ query ->
+             ; Polling_state_rpc.implement
+                 ~on_client_and_server_out_of_sync:(fun _ -> ())
+                 Rpcs.Poll_client_state.rpc
+                 (fun _ query ->
+                   return
+                     (handle_client_requesting_client_state
+                        query
+                        server_state_ref))
+               (* ; Rpc.Pipe_rpc.implement Rpcs.State_pipe.rpc (fun _ query ->
                  return
-                   (handle_client_requesting_pipe query server_state_ref))
+                   (handle_client_requesting_pipe query server_state_ref)) *)
              ])
-      ~initial_connection_state:(fun _ _ -> ())
+      ~initial_connection_state:(fun _ connection -> (), connection)
       ~where_to_listen:(Tcp.Where_to_listen.of_port port)
       ()
   in

@@ -1,7 +1,7 @@
 open! Core
 
 type t =
-  { health : int 
+  { health : int
   ; inventory : Item.t list
   ; is_alive : bool
   ; name : string

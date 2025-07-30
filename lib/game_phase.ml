@@ -15,5 +15,6 @@ let to_duration t =
   | Negotiation -> 60
   | Item_usage -> 15
   | Round_results -> 20
-  | Waiting_room | Game_results -> Int.max_int
+  | Game_results -> 30
+  | Waiting_room -> Int.max_int
 ;;
