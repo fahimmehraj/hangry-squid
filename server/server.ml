@@ -9,12 +9,15 @@ let handle_client_requesting_client_state
   Game_state.get_client_state_from_name !authoritative_game_state query.name
 ;;
 
-let sleep seconds =
+let sleep (seconds : int) =
   let%bind () = Clock_ns.after (Time_ns.Span.of_int_sec seconds) in
   return ()
 ;;
 
-let change_game_phase (authoritative_game_state : Game_state.t ref) phase =
+let change_game_phase
+  (authoritative_game_state : Game_state.t ref)
+  (phase : Game_phase.t)
+  =
   authoritative_game_state
   := { !authoritative_game_state with
        current_phase = phase
@@ -32,7 +35,10 @@ let reset (authoritative_game_state : Game_state.t ref) =
   return ()
 ;;
 
-let phase authoritative_game_state phase_to_change_to =
+let phase
+  (authoritative_game_state : Game_state.t ref)
+  (phase_to_change_to : Game_phase.t)
+  =
   change_game_phase authoritative_game_state phase_to_change_to;
   let%bind () = sleep (Game_phase.to_duration phase_to_change_to) in
   return ()
@@ -40,7 +46,7 @@ let phase authoritative_game_state phase_to_change_to =
 
 let update_player_item_choices_and_round
   (authoritative_game_state : Game_state.t ref)
-  new_round
+  (new_round : int)
   =
   let item_blockers_used =
     List.filter_map
