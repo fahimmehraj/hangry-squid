@@ -20,6 +20,7 @@ module Client_message = struct
 
   module Query = struct
     type t =
+      | New_player of string
       | Ready_status_change of Ready_status_change.t
       | Item_selection of Item_selection.t
       | Chat_message of Message.t
@@ -35,7 +36,7 @@ module Client_message = struct
 
   let rpc =
     Rpc.Rpc.create
-      ~name:"ready-status"
+      ~name:"client-message"
       ~version:0
       ~bin_query:Query.bin_t
       ~bin_response:Response.bin_t
@@ -65,7 +66,7 @@ module Poll_client_state = struct
 
   let rpc =
     Polling_state_rpc.create
-      ~name:"ready-status"
+      ~name:"poll-client-state"
       ~version:0
       ~query_equal:[%equal: Query.t]
       ~bin_query:Query.bin_t

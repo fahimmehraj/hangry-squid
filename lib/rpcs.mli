@@ -20,6 +20,7 @@ module Client_message : sig
 
   module Query : sig
     type t =
+      | New_player of string
       | Ready_status_change of Ready_status_change.t
       | Item_selection of Item_selection.t
       | Chat_message of Message.t
@@ -37,11 +38,11 @@ end
 
 module Poll_client_state : sig
   module Query : sig
-    type t = { name : string } [@@deriving sexp_of, bin_io]
+    type t = { name : string } [@@deriving sexp_of, bin_io, equal]
   end
 
   module Response : sig
-    type t = Client_state.t [@@deriving sexp_of, bin_io]
+    type t = Client_state.t [@@deriving sexp_of, bin_io, equal]
 
     module Update : sig
       type nonrec t = t [@@deriving bin_io, sexp_of, equal]
