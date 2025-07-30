@@ -55,6 +55,5 @@ module Poll_client_state : sig
     type t = string [@@deriving sexp_of, bin_io]
   end
 
-  (* val rpc : (Query.t, Response.t, Error.t) Rpc.Pipe_rpc.t *)
   val rpc : (Query.t, Response.t) Polling_state_rpc.t
 end

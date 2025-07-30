@@ -71,5 +71,4 @@ module Poll_client_state = struct
       ~bin_query:Query.bin_t
       (module Response)
   ;;
-  (* (module Diffable_polling_state_rpc_response.Polling_state_rpc_response.Make (Response)) *)
 end
