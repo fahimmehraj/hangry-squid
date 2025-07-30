@@ -10,10 +10,7 @@ type t =
 
 let default_health = 100
 let default_inventory = []
-
-let equal t1 t2 =
-  String.equal t1.name t2.name
-;;
+let equal t1 t2 = String.equal t1.name t2.name
 
 let new_player name =
   { health = default_health

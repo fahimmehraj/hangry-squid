@@ -11,6 +11,7 @@ type t =
   ; public_results : Round_result.t list
   ; private_results : Round_result.t list String.Map.t
   ; item_choices_by_user : (Item.t * Item.t) option String.Map.t
+  ; round_start : Time_ns.t
   }
 [@@deriving sexp]
 
@@ -25,6 +26,7 @@ let create_empty_game () =
   ; public_results = []
   ; private_results = Map.empty (module String)
   ; item_choices_by_user = Map.empty (module String)
+  ; round_start = Time_ns.now ()
   }
 ;;
 
@@ -54,8 +56,9 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
     | None -> None
     | Some choice -> choice
   in
-  let me = 
-    match Map.find t.players name with 
+  let round_start = t.round_start in
+  let me =
+    match Map.find t.players name with
     | None -> failwith "Player not found"
     | Some player -> player
   in
@@ -68,7 +71,8 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   ; public_results
   ; my_results
   ; item_choices
-  ; me 
+  ; round_start
+  ; me
   }
 ;;
 

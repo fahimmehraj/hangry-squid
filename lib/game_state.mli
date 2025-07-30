@@ -11,6 +11,7 @@ type t =
   ; public_results : Round_result.t list
   ; private_results : Round_result.t list String.Map.t
   ; item_choices_by_user : (Item.t * Item.t) option String.Map.t
+  ; round_start : Time_ns.t
   }
 [@@deriving sexp]
 
