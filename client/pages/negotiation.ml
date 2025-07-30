@@ -9,7 +9,11 @@ type party =
   | Me
   | Other
 
-let inventory (player: Player.t)=
+type tab =
+  | All
+  | Dm of string
+
+let inventory (player : Player.t) =
   List.map player.inventory ~f:Components.item
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "inventory" ] ]
 ;;
@@ -38,14 +42,56 @@ let msg_bubble content ~who =
     [ Vdom.Node.p [ Vdom.Node.text content ] ]
 ;;
 
-let players_list_element (players : Restricted_player_view.t list) =
-  List.filter players ~f:(fun { is_alive; _ } -> is_alive)
-  |> List.map ~f:(fun player ->
-    Components.healthbar player.name player.health)
-  |> Vdom.Node.div
-       ~attrs:
-         [ [%css
-             {|
+let all_messages_tab_element (tab : tab) (set_tab : tab -> unit Ui_effect.t) =
+  let background_color =
+    match tab with All -> "#F7F7F7" | _ -> "transparent"
+  in
+  Vdom.Node.div
+    ~attrs:
+      [ Vdom.Attr.on_click (fun _ -> set_tab All)
+      ; [%css
+          {|
+      background-color: %{background_color}; 
+      cursor: pointer;
+    |}]
+      ]
+    [ Vdom.Node.p [ Vdom.Node.text "All Messages" ] ]
+;;
+
+let players_list_element
+  (players : Restricted_player_view.t list)
+  (tab : tab)
+  (set_tab : tab -> unit Ui_effect.t)
+  ~(me : Player.t)
+  =
+  let players_list =
+    List.filter players ~f:(fun { is_alive; _ } -> is_alive)
+    |> List.filter ~f:(fun player -> not (String.equal player.name me.name))
+    |> List.map ~f:(fun player ->
+      let healthbar = Components.healthbar player.name player.health in
+      let background_color =
+        match tab with
+        | All -> "transparent"
+        | Dm name ->
+          (match String.equal name player.name with
+           | true -> "#F7F7F7"
+           | false -> "transparent")
+      in
+      Vdom.Node.div
+        ~attrs:
+          [ [%css
+              {|
+    background-color: %{background_color}; 
+    cursor: pointer;
+  |}]
+          ; Vdom.Attr.on_click (fun _ -> set_tab (Dm player.name))
+          ]
+        [ healthbar ])
+  in
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
       border-right: 1px solid #000000;
       display: flex;
       flex-direction: column;
@@ -53,39 +99,16 @@ let players_list_element (players : Restricted_player_view.t list) =
       overflow-y: auto;
       overflow-x: hidden;
     |}]
-         ]
+      ]
+    (all_messages_tab_element tab set_tab :: players_list)
 ;;
 
-let messages =
-  [ msg_bubble "Yo" ~who:Other
-  ; msg_bubble "I have a big knife" ~who:Other
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ; msg_bubble "Fr?" ~who:Me
-  ]
+let message_bubbles (messages : Message.t list) (me : string) =
+  List.map messages ~f:(fun message ->
+    let who =
+      match String.equal message.sender me with true -> Me | false -> Other
+    in
+    msg_bubble message.contents ~who)
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -117,7 +140,7 @@ let reply_box =
     ()
 ;;
 
-let messages_window =
+let messages_window messages ~me =
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -129,11 +152,28 @@ let messages_window =
 
   |}]
       ]
-    [ messages; reply_box ]
+    [ message_bubbles messages me; reply_box ]
 ;;
 
-let chat_window players my_messages public_messages =
-  let%arr players in
+let chat_window
+  players
+  my_messages
+  public_messages
+  ~(me : Player.t Bonsai.t)
+  (local_ graph)
+  =
+  let tab, set_tab = Bonsai.state All graph in
+  let%arr players
+  and tab
+  and set_tab
+  and my_messages
+  and public_messages
+  and me in
+  let messages =
+    match tab with
+    | All -> public_messages
+    | Dm other_party -> match Map.find my_messages other_party with None -> [] | Some messages -> messages
+  in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -145,10 +185,22 @@ let chat_window players my_messages public_messages =
 
   |}]
       ]
-    [ players_list_element players ; messages_window ]
+    [ players_list_element players tab set_tab ~me
+    ; messages_window messages ~me:me.name
+    ]
 ;;
 
-let chat_window_with_header players my_messages public_messages =
+let chat_window_with_header
+  players
+  my_messages
+  public_messages
+  ~me
+  (local_ graph)
+  =
+  let chat_window_stateful =
+    chat_window players my_messages public_messages ~me graph
+  in
+  let%arr chat_window_stateful in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -158,7 +210,7 @@ let chat_window_with_header players my_messages public_messages =
     overflow-y: auto;
   |}]
       ]
-    [ Vdom.Node.h2 [ Vdom.Node.text "Chat" ]; chat_window players my_messages public_messages ]
+    [ Vdom.Node.h2 [ Vdom.Node.text "Chat" ]; chat_window_stateful ]
 ;;
 
 let inventory_window_with_header (player : Player.t Bonsai.t) =
@@ -175,8 +227,13 @@ let inventory_window_with_header (player : Player.t Bonsai.t) =
     [ Vdom.Node.h2 [ Vdom.Node.text "Inventory" ]; inventory player ]
 ;;
 
-let content (current_state: Client_state.t Bonsai.t) =
-  let%sub { me ; players ; my_messages ; public_messages } = current_state in
+let content (current_state : Client_state.t Bonsai.t) (local_ graph) =
+  let%sub { me; players; my_messages; public_messages; _ } = current_state in
+  let chat_section_stateful =
+    chat_window_with_header players my_messages public_messages ~me graph
+  in
+  let inventory_section_stateful = inventory_window_with_header me in
+  let%arr chat_section_stateful and inventory_section_stateful in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -190,16 +247,17 @@ let content (current_state: Client_state.t Bonsai.t) =
     margin: 16px;
   |}]
       ]
-    [ chat_window_with_header players my_messages public_messages; inventory_window_with_header me ]
+    [ chat_section_stateful; inventory_section_stateful ]
 ;;
 
-let body (current_state : Client_state.t Bonsai.t) (local_ _graph) =
+let body (current_state : Client_state.t Bonsai.t) (local_ graph) =
   let%sub { me; _ } = current_state in
-  let%arr me in
+  let content = content current_state graph in
+  let%arr me and content in
   Vdom.Node.div
     ~attrs:
       [ [%css {| height: 100%; display: flex; flex-direction: column; |}] ]
     [ Components.header me ~phase_name:"Negotiation Phase" ~seconds_left:60
-    ; content current_state
+    ; content
     ]
 ;;
