@@ -205,7 +205,7 @@ let handle_client_message
   | Item_used action -> handle_item_used authoritative_game_state action
 ;;
 
-let start_server port authoritative_game_state =
+let start_server host_and_port authoritative_game_state =
   let%bind server =
     Rpc.Connection.serve
       ~implementations:
@@ -226,7 +226,12 @@ let start_server port authoritative_game_state =
                         authoritative_game_state))
              ])
       ~initial_connection_state:(fun _ connection -> (), connection)
-      ~where_to_listen:(Tcp.Where_to_listen.of_port port)
+      ~where_to_listen:
+        (Tcp.Where_to_listen.bind_to
+           (Tcp.Bind_to_address.Address
+           (Unix.Inet_addr.of_string (Host_and_port.host host_and_port)))
+           (Tcp.Bind_to_port.On_port
+           (Host_and_port.port host_and_port)))
       ()
   in
   Tcp.Server.close_finished server
@@ -235,9 +240,9 @@ let start_server port authoritative_game_state =
 let start_server_command =
   Command.async
     ~summary:"Start a game server"
-    (let%map_open.Command server_port =
-       flag "port" (required int) ~doc:"server <port> number"
+    (let%map_open.Command host_and_server_port =
+       flag "address" (required host_and_port) ~doc:"<host>:<port>"
      in
      let authoritative_game_state = ref (Game_state.create_empty_game ()) in
-     fun () -> start_server server_port authoritative_game_state)
+     fun () -> start_server host_and_server_port authoritative_game_state)
 ;;
