@@ -48,7 +48,7 @@ let update_player_item_choices_and_round
   (authoritative_game_state : Game_state.t ref)
   (new_round : int)
   =
-  let item_blockers_used =
+  let players_with_item_blockers_used_on =
     List.filter_map
       !authoritative_game_state.actions_taken_in_round
       ~f:(fun (action : Action.t) ->
@@ -60,10 +60,11 @@ let update_player_item_choices_and_round
   in
   let new_item_choices =
     Map.mapi
-      !authoritative_game_state.item_choices_by_user
+      !authoritative_game_state.players
       ~f:(fun ~key ~data ->
+        let player_name = key in 
         ignore data;
-        if List.mem item_blockers_used key ~equal:String.equal
+        if List.mem players_with_item_blockers_used_on player_name ~equal:String.equal
         then None
         else Some (Item.get_two_random_items_no_duplicates ()))
   in
