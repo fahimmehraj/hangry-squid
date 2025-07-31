@@ -8,4 +8,6 @@ type t =
   | Game_results
 [@@deriving sexp, bin_io, equal]
 
+val to_string : t -> string
+
 val to_duration : t -> int

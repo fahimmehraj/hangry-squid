@@ -9,16 +9,6 @@ type item =
   ; image_url : string
   }
 
-let header =
-  {%html|
-  <div class="header">
-    <h1>Hangry Games</h1>
-    <p>Rules Overview</p>
-    <p>60 seconds left in the current phase</p>
-  </div>
-|}
-;;
-
 let rules =
   {%html|
   <div>
@@ -89,4 +79,4 @@ let content = Vdom.Node.div [ rules; items ]
 |}
 ;; *)
 
-let body () = Bonsai.return (Vdom.Node.div [ header; content; ])
+let body () = Bonsai.return (Vdom.Node.div [ content; ])

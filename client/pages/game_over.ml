@@ -3,16 +3,6 @@ open Bonsai_web
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let header =
-  {%html|
-  <div class="header">
-    <h1>Hangry Games</h1>
-    <p>Round Outcome</p>
-    <p>5 seconds left in the current phase</p>
-  </div>
-|}
-;;
-
 let player_in_waiting_room name avatar_url =
   let container_styles =
     [%css
@@ -149,5 +139,5 @@ let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   flex-direction: column;
 |}]
          ]
-       [ header; content ])
+       [ content ])
 ;;

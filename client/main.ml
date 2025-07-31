@@ -20,6 +20,36 @@ let loading_page = {%html|
   <p>Loading...</p>
 |}
 
+let page_with_header (current_state : Client_state.t Bonsai.t) (local_ graph)
+  =
+  let%sub { round_start; current_phase; me; _ } = current_state in
+  let now =
+    Bonsai.Clock.approx_now ~tick_every:(Time_ns.Span.of_sec 1.) graph
+  in
+  let header =
+    let%arr now and round_start and me and current_phase in
+    let seconds_left =
+      Time_ns.abs_diff now round_start |> Time_ns.Span.to_int_sec
+    in
+    Components.header
+      me
+      ~phase_name:(Game_phase.to_string current_phase)
+      ~seconds_left
+  in
+  let content =
+    match%sub current_phase with
+    | Waiting_room -> Pages.Waiting_room.body current_state graph
+    | Rules -> Pages.Rules.body ()
+    | Item_selection -> Pages.Select.body current_state graph
+    | Negotiation -> Pages.Negotiation.body current_state graph
+    | Item_usage -> Pages.Use_item.body current_state graph
+    | Round_results -> Pages.Outcome.body current_state graph
+    | Game_results -> Pages.Game_over.body current_state graph
+  in
+  let%arr header and content in
+  Vdom.Node.div [ header; content ]
+;;
+
 let serve_route (local_ graph) =
   (* let route = Url_var.value url_var in *)
   let initialized, toggle_initialized =
@@ -35,7 +65,10 @@ let serve_route (local_ graph) =
       graph
       ~where_to_connect:
         (Bonsai.return
-           (Rpc_effect.Where_to_connect.self ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc ()))
+           (Rpc_effect.Where_to_connect.self
+              ~on_conn_failure:
+                Rpc_effect.On_conn_failure.Surface_error_to_rpc
+              ()))
   in
   Bonsai.Edge.lifecycle
     ~on_activate:
@@ -44,8 +77,7 @@ let serve_route (local_ graph) =
        let%bind.Effect () = Effect.print_s [%sexp "hi"] in
        let%bind.Effect _a = dispatch_new_player player_name_as_query in
        let%bind.Effect () = Effect.print_s [%sexp "hiya"] in
-       toggle_initialized
-       )
+       toggle_initialized)
     graph;
   (* let%bind.Effect he = dispatch_new_player (Rpcs.Client_message.Query.New_player player_name) *)
   let response =
@@ -56,7 +88,8 @@ let serve_route (local_ graph) =
       ~where_to_connect:
         (Bonsai.return
            (Rpc_effect.Where_to_connect.self
-              ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc
+              ~on_conn_failure:
+                Rpc_effect.On_conn_failure.Surface_error_to_rpc
               ()))
       (Bonsai.return { Rpcs.Poll_client_state.Query.name = player_name })
       graph
@@ -67,8 +100,8 @@ let serve_route (local_ graph) =
     let response = response.last_ok_response in
     match response, error with
     | None, Some (_, err) -> failwith (Error.to_string_hum err)
-    | Some (_, current_state), _ -> 
-      print_s [%sexp (current_state : Client_state.t )];
+    | Some (_, current_state), _ ->
+      print_s [%sexp (current_state : Client_state.t)];
       Some current_state
     | None, _ -> None
   in
@@ -76,16 +109,9 @@ let serve_route (local_ graph) =
   | None -> Bonsai.return loading_page
   | Some current_state ->
     let%sub { current_phase; _ } = current_state in
-    (match%sub current_phase, initialized with
-     | _, false -> Bonsai.return loading_page
-     | Waiting_room, true -> Pages.Waiting_room.body current_state graph
-     | Rules, true -> Pages.Rules.body ()
-     | Item_selection, true -> Pages.Select.body current_state graph
-     | Negotiation, true -> Pages.Negotiation.body current_state graph
-     | Item_usage, true -> Pages.Use_item.body current_state graph
-     | Round_results, true -> Pages.Outcome.body current_state graph
-     | Game_results, true -> Pages.Game_over.body current_state graph
-    )
+    (match%sub initialized with
+     | false -> Bonsai.return loading_page
+     | true -> page_with_header current_state graph)
 ;;
 
 (* let connector =

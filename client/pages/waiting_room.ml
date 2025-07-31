@@ -8,15 +8,6 @@ let avatar_url =
   "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"
 ;;
 
-let header =
-  {%html|
-  <div class="header">
-    <h1>Hangry Games</h1>
-    <p>Waiting for games to start</p>
-  </div>
-|}
-;;
-
 let player_in_waiting_room name ~is_ready =
   let name_color =
     match is_ready with true -> "#32a852" | false -> "#ed5c8a"
@@ -129,5 +120,5 @@ let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   let ready_button = ready_button client_state graph in
   let%arr { players; ready_players; _ } = client_state
   and ready_button in
-  Vdom.Node.div [ header; ready_button; player_view players ready_players ]
+  Vdom.Node.div [ ready_button; player_view players ready_players ]
 ;;

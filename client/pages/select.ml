@@ -4,16 +4,6 @@ open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let header =
-  {%html|
-  <div class="header">
-    <h1>Hangry Games</h1>
-    <p>Item Selection Phase</p>
-    <p>15 seconds left in the current phase</p>
-  </div>
-|}
-;;
-
 let items_to_select_from
   (item_choices : (Item.t * Item.t) option Bonsai.t)
   ~(me : Player.t Bonsai.t)
@@ -132,5 +122,5 @@ let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   flex-direction: column;
 |}]
       ]
-    [ header; content_stateful ]
+    [ content_stateful ]
 ;;
