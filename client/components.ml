@@ -3,12 +3,12 @@ open Bonsai_web
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let item item =
+let item ?(on_click = fun _ -> Effect.all_unit []) item =
   let image_url = "/assets/" ^ Item.image item in
   let name = Item.to_string item in
   let description = Item.description item in
   {%html|
-    <div class="item">
+    <div class="item" on_click=%{on_click}>
       <img src=%{image_url#String}/>
       <p>%{name#String}</p>
       <p>%{description#String}</p>
@@ -55,7 +55,7 @@ let healthbar name health =
     ]
 ;;
 
-let header ({ name ; health; _}: Player.t) ~phase_name ~seconds_left  =
+let header ({ name; health; _ } : Player.t) ~phase_name ~seconds_left =
   {%html|
   <div class="header">
     <div class="header-row">
