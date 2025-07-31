@@ -207,6 +207,27 @@ let handle_client_message
   | Item_used action -> handle_item_used authoritative_game_state action
 ;;
 
+let web_handler =
+  Cohttp_static_handler.Single_page_handler.create_handler
+    (Cohttp_static_handler.Single_page_handler.default_with_body_div ~div_id:"app")
+    ~title:"Hangry Squid"
+    ~on_unknown_url:`Not_found
+    ~assets:
+      [ Cohttp_static_handler.Asset.local
+          Cohttp_static_handler.Asset.Kind.javascript
+          (Cohttp_static_handler.Asset.What_to_serve.file
+             ~relative_to:`Exe
+             ~path:"../client/main.bc.js")
+        ;
+        Cohttp_static_handler.Asset.local
+          Cohttp_static_handler.Asset.Kind.css
+          (Cohttp_static_handler.Asset.What_to_serve.file
+             ~relative_to:`Exe
+             ~path:"../client/style.css")
+
+      ]
+;;
+
 let start_server host_and_port authoritative_game_state =
   let listen_at =
     Tcp.Where_to_listen.create
@@ -221,6 +242,7 @@ let start_server host_and_port authoritative_game_state =
     Rpc_websocket.Rpc.serve
       ~where_to_listen:listen_at
       ~initial_connection_state:(fun () _ _ conn -> (), conn)
+      ~http_handler:(fun _ -> web_handler)
       ~implementations:
         (Rpc.Implementations.create_exn
            ~on_exception:Rpc.On_exception.Close_connection

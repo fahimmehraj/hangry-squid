@@ -35,7 +35,7 @@ let serve_route (local_ graph) =
       graph
       ~where_to_connect:
         (Bonsai.return
-           (Rpc_effect.Where_to_connect.url ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc "wss://18.223.177.107:10000"))
+           (Rpc_effect.Where_to_connect.self ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc ()))
   in
   Bonsai.Edge.lifecycle
     ~on_activate:
@@ -55,9 +55,9 @@ let serve_route (local_ graph) =
       ~every:(Bonsai.return (Time_ns.Span.of_sec 0.1))
       ~where_to_connect:
         (Bonsai.return
-           (Rpc_effect.Where_to_connect.url
+           (Rpc_effect.Where_to_connect.self
               ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc
-              "wss://18.223.177.107:10000"))
+              ()))
       (Bonsai.return { Rpcs.Poll_client_state.Query.name = player_name })
       graph
   in
