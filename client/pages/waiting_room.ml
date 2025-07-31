@@ -75,7 +75,7 @@ let component (local_ graph) =
   Vdom.Node.div (add_button :: counters)
 ;;
 
-let page (client_state : Client_state.t Bonsai.t) (local_ graph) =
+let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   let player_view players ready_players =
     Vdom.Node.div
       ~attrs:

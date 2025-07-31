@@ -78,10 +78,14 @@ let serve_route (local_ graph) =
     let%sub { current_phase; _ } = current_state in
     (match%sub current_phase, initialized with
      | _, false -> Bonsai.return loading_page
-     | Waiting_room, true -> Pages.Waiting_room.page current_state graph
+     | Waiting_room, true -> Pages.Waiting_room.body current_state graph
      | Rules, true -> Pages.Rules.body ()
+     | Item_selection, true -> Pages.Select.body current_state graph
      | Negotiation, true -> Pages.Negotiation.body current_state graph
-     | _ -> Pages.Waiting_room.page current_state graph)
+     | Item_usage, true -> Pages.Use_item.body current_state graph
+     | Round_results, true -> Pages.Outcome.body current_state graph
+     | Game_results, true -> Pages.Game_over.body current_state graph
+    )
 ;;
 
 (* let connector =

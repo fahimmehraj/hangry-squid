@@ -121,16 +121,7 @@ let content =
     [ left_section; right_section ]
 ;;
 
-let next_phase_button url_var =
-  Vdom.Node.button
-    ~attrs:
-      [ Vdom.Attr.on_click (fun _ ->
-          Url_var.set_effect url_var Page.Round_results)
-      ]
-    [ Vdom.Node.text "next phase" ]
-;;
-
-let body url_var =
+let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   Bonsai.return
     (Vdom.Node.div
        ~attrs:
@@ -141,5 +132,5 @@ let body url_var =
   flex-direction: column;
 |}]
          ]
-       [ header; next_phase_button url_var; content ])
+       [ header; content ])
 ;;
