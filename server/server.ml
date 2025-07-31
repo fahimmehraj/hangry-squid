@@ -6,7 +6,6 @@ let handle_client_requesting_client_state
   (query : Rpcs.Poll_client_state.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
-  print_s [%sexp (query : Rpcs.Poll_client_state.Query.t)];
   Game_state.get_client_state_from_name !authoritative_game_state query.name
 ;;
 
@@ -196,7 +195,6 @@ let handle_client_message
   (query : Rpcs.Client_message.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
-  print_s [%sexp (query : Rpcs.Client_message.Query.t)];
   match query with
   | New_player name -> handle_new_player authoritative_game_state name
   | Ready_status_change status_change ->
@@ -209,7 +207,8 @@ let handle_client_message
 
 let web_handler =
   Cohttp_static_handler.Single_page_handler.create_handler
-    (Cohttp_static_handler.Single_page_handler.default_with_body_div ~div_id:"app")
+    (Cohttp_static_handler.Single_page_handler.default_with_body_div
+       ~div_id:"app")
     ~title:"Hangry Squid"
     ~on_unknown_url:`Not_found
     ~assets:
@@ -218,13 +217,11 @@ let web_handler =
           (Cohttp_static_handler.Asset.What_to_serve.file
              ~relative_to:`Exe
              ~path:"../client/main.bc.js")
-        ;
-        Cohttp_static_handler.Asset.local
+      ; Cohttp_static_handler.Asset.local
           Cohttp_static_handler.Asset.Kind.css
           (Cohttp_static_handler.Asset.What_to_serve.file
              ~relative_to:`Exe
              ~path:"../client/style.css")
-
       ]
 ;;
 
