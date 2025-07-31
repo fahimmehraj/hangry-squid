@@ -6,6 +6,7 @@ let handle_client_requesting_client_state
   (query : Rpcs.Poll_client_state.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
+  print_s [%sexp (query : Rpcs.Poll_client_state.Query.t)];
   Game_state.get_client_state_from_name !authoritative_game_state query.name
 ;;
 
@@ -195,6 +196,7 @@ let handle_client_message
   (query : Rpcs.Client_message.Query.t)
   (authoritative_game_state : Game_state.t ref)
   =
+  print_s [%sexp (query : Rpcs.Client_message.Query.t)];
   match query with
   | New_player name -> handle_new_player authoritative_game_state name
   | Ready_status_change status_change ->
@@ -206,8 +208,19 @@ let handle_client_message
 ;;
 
 let start_server host_and_port authoritative_game_state =
-  let%bind server =
-    Rpc.Connection.serve
+  let listen_at =
+    Tcp.Where_to_listen.create
+      ~socket_type:Socket.Type.tcp
+      ~address:
+        (Socket.Address.Inet.create
+           (Unix.Inet_addr.of_string (Host_and_port.host host_and_port))
+           ~port:(Host_and_port.port host_and_port))
+      ~listening_on:(function `Inet (_, port) -> port)
+  in
+  let server =
+    Rpc_websocket.Rpc.serve
+      ~where_to_listen:listen_at
+      ~initial_connection_state:(fun () _ _ conn -> (), conn)
       ~implementations:
         (Rpc.Implementations.create_exn
            ~on_exception:Rpc.On_exception.Close_connection
@@ -225,16 +238,11 @@ let start_server host_and_port authoritative_game_state =
                         query
                         authoritative_game_state))
              ])
-      ~initial_connection_state:(fun _ connection -> (), connection)
-      ~where_to_listen:
-        (Tcp.Where_to_listen.bind_to
-           (Tcp.Bind_to_address.Address
-           (Unix.Inet_addr.of_string (Host_and_port.host host_and_port)))
-           (Tcp.Bind_to_port.On_port
-           (Host_and_port.port host_and_port)))
       ()
   in
-  Tcp.Server.close_finished server
+  let%bind server in
+  let%bind () = Cohttp_async.Server.close_finished server in
+  return ()
 ;;
 
 let start_server_command =

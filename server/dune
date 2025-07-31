@@ -2,4 +2,4 @@
  (name server)
  (preprocess
   (pps ppx_jane))
- (libraries hangry_squid async core))
+ (libraries async_rpc_websocket hangry_squid async core))
