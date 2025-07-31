@@ -1,106 +1,90 @@
 open! Core
+open! Async_kernel
+open! Async_rpc_kernel
+
+(* open Async_js *)
 open Bonsai_web
+
+(* open Async_kernel.Let_syntax *)
 open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let players =
-  List.init 8 ~f:(fun i -> Printf.sprintf "Player %d" (i + 1))
-  |> List.map ~f:(fun name ->
-    { Restricted_player_view.name; health = 75; is_alive = true })
+let generate_player_string () =
+  let random_offset = Random.int 500 in
+  let player_number = random_offset + 1 in
+  Printf.sprintf "Player %d" player_number
 ;;
 
-let dummy_timestamp =
-  Time_ns.now () (* Get the current time for dummy messages *)
-;;
+let loading_page = {%html|
+  <p>Loading...</p>
+|}
 
-(* Messages for "Player 1" *)
-let messages_for_Player1 =
-  [ { Message.sender = "Player 1"
-    ; recipient = Some "Player 2"
-    ; contents = "Hi Player 2, how are you?"
-    ; timestamp = dummy_timestamp
-    }
-  ; { Message.sender = "Player 2"
-    ; recipient = Some "Player 1"
-    ; contents = "I'm good, Player 1! What's up?"
-    ; timestamp =
-        Time_ns.add dummy_timestamp (Time_ns.Span.of_sec 10.0)
-        (* A bit later *)
-    }
-  ; { Message.sender = "Player 1"
-    ; recipient = Some "Player 2"
-    ; contents = "Just chilling. Want to grab coffee?"
-    ; timestamp = Time_ns.add dummy_timestamp (Time_ns.Span.of_sec 20.0)
-    }
-  ]
-;;
-
-(* Messages for "Player 2" (can be a subset or different set,
-     but for a conversation, you'd likely want consistent messages) *)
-let messages_for_Player2 =
-  [ { Message.sender = "Player 2"
-    ; recipient = Some "Player 1"
-    ; contents = "Hey Player 1, got your message."
-    ; timestamp = dummy_timestamp
-    }
-  ; { Message.sender = "Player 1"
-    ; recipient = Some "Player 2"
-    ; contents = "Cool, let me know when you're free."
-    ; timestamp = Time_ns.add dummy_timestamp (Time_ns.Span.of_sec 15.0)
-    }
-  ]
-;;
-
-let message_map_instance : Message.t list String.Map.t =
-  String.Map.of_alist_exn
-    [ "Player 1", messages_for_Player1; "Player 2", messages_for_Player2 ]
-;;
-
-let public_messages: Message.t list = [
-  { sender = "Player 1" ; recipient = None ; contents = "Fr?" ; timestamp = dummy_timestamp }
-  ; { sender = "Player 1" ; recipient = None ; contents = "Fr?" ; timestamp = dummy_timestamp }
-  ; { sender = "Player 1" ; recipient = None ; contents = "Fr?" ; timestamp = dummy_timestamp }
-  ; { sender = "Player 1" ; recipient = None ; contents = "Fr?" ; timestamp = dummy_timestamp }
-  ; { sender = "Player 1" ; recipient = None ; contents = "Fr?" ; timestamp = dummy_timestamp }
-]
-
-let _dummy_state : Client_state.t =
-  { current_round = 1
-  ; current_phase = Negotiation
-  ; players
-  ; ready_players = [ "Player 2"; "Player 3" ]
-  ; public_messages = public_messages
-  ; my_messages = message_map_instance
-  ; public_results = []
-  ; my_results = []
-  ; item_choices = Some (Item.pocket_knife, Item.medical_kit)
-  ; me =
-      { name = "Player 1"
-      ; is_alive = true
-      ; inventory = [ Item.pocket_knife ]
-      ; health = 100
-      }
-  }
-;;
-
-let serve_route (current_state : Client_state.t Bonsai.t) (local_ graph) =
+let serve_route (local_ graph) =
   (* let route = Url_var.value url_var in *)
-  let%sub { current_phase; _ } = current_state in
-  match%sub current_phase with
-  | Waiting_room -> Pages.Waiting_room.page current_state graph
-  | Rules -> Pages.Rules.body ()
-  | Negotiation -> Pages.Negotiation.body current_state graph
-  | _ -> Pages.Waiting_room.page current_state graph
+  let initialized, toggle_initialized =
+    Bonsai.toggle ~default_model:false graph
+  in
+  let player_name = generate_player_string () in
+  let player_name_as_query =
+    Rpcs.Client_message.Query.New_player player_name
+  in
+  let dispatch_new_player =
+    Rpc_effect.Rpc.dispatcher
+      Rpcs.Client_message.rpc
+      graph
+      ~where_to_connect:
+        (Bonsai.return
+           (Rpc_effect.Where_to_connect.url ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc "wss://18.223.177.107:10000"))
+  in
+  Bonsai.Edge.lifecycle
+    ~on_activate:
+      (let%arr dispatch_new_player and _t = toggle_initialized in
+       print_endline "did stuff";
+       let%bind.Effect () = Effect.print_s [%sexp "hi"] in
+       let%bind.Effect _a = dispatch_new_player player_name_as_query in
+       let%bind.Effect () = Effect.print_s [%sexp "hiya"] in
+       Ui_effect.return ()
+       )
+    graph;
+  (* let%bind.Effect he = dispatch_new_player (Rpcs.Client_message.Query.New_player player_name) *)
+  let response =
+    Rpc_effect.Polling_state_rpc.poll
+      Rpcs.Poll_client_state.rpc
+      ~equal_query:[%equal: Rpcs.Poll_client_state.Query.t]
+      ~every:(Bonsai.return (Time_ns.Span.of_sec 0.1))
+      ~where_to_connect:
+        (Bonsai.return
+           (Rpc_effect.Where_to_connect.url
+              ~on_conn_failure:Rpc_effect.On_conn_failure.Surface_error_to_rpc
+              "wss://18.223.177.107:10000"))
+      (Bonsai.return { Rpcs.Poll_client_state.Query.name = player_name })
+      graph
+  in
+  let current_state =
+    let%arr response in
+    let error = response.last_error in
+    let response = response.last_ok_response in
+    match response, error with
+    | None, Some (_, err) -> failwith (Error.to_string_hum err)
+    | Some (_, current_state), _ -> Some current_state
+    | None, _ -> None
+  in
+  match%sub current_state with
+  | None -> Bonsai.return loading_page
+  | Some current_state ->
+    let%sub { current_phase; _ } = current_state in
+    (match%sub current_phase, initialized with
+     | _, false -> Bonsai.return loading_page
+     | Waiting_room, true -> Pages.Waiting_room.page current_state graph
+     | Rules, true -> Pages.Rules.body ()
+     | Negotiation, true -> Pages.Negotiation.body current_state graph
+     | _ -> Pages.Waiting_room.page current_state graph)
 ;;
 
-(* | Rules -> Rules.body graph
-    | Item_selection -> Select.body graph
-    | Negotiation -> Negotiation.body graph
-    | Round_results -> Outcome.body graph
-    | Game_results -> Game_over.body graph
-    | Item_usage -> Use_item.body graph *)
+(* let connector =
+    Rpc_effect.Connector.persistent_connection
+      ~on_conn_failure:Rpc_effect.On_conn_failure.Retry_until_success
+      ~connection_state:(fun conn -> (), conn) *)
 
-(* let url_var = Url_var.create_exn (module Page) ~fallback:Waiting_room *)
-let current_state = Bonsai.return _dummy_state
-let () = Bonsai_web.Start.start (serve_route current_state)
+let () = Bonsai_web.Start.start serve_route
