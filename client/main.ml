@@ -39,12 +39,12 @@ let serve_route (local_ graph) =
   in
   Bonsai.Edge.lifecycle
     ~on_activate:
-      (let%arr dispatch_new_player and _t = toggle_initialized in
+      (let%arr dispatch_new_player and toggle_initialized in
        print_endline "did stuff";
        let%bind.Effect () = Effect.print_s [%sexp "hi"] in
        let%bind.Effect _a = dispatch_new_player player_name_as_query in
        let%bind.Effect () = Effect.print_s [%sexp "hiya"] in
-       Ui_effect.return ()
+       toggle_initialized
        )
     graph;
   (* let%bind.Effect he = dispatch_new_player (Rpcs.Client_message.Query.New_player player_name) *)
@@ -67,7 +67,9 @@ let serve_route (local_ graph) =
     let response = response.last_ok_response in
     match response, error with
     | None, Some (_, err) -> failwith (Error.to_string_hum err)
-    | Some (_, current_state), _ -> Some current_state
+    | Some (_, current_state), _ -> 
+      print_s [%sexp (current_state : Client_state.t )];
+      Some current_state
     | None, _ -> None
   in
   match%sub current_state with
