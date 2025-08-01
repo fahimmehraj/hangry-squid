@@ -3,14 +3,26 @@ open Bonsai_web
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let item ?(on_click = fun _ -> Effect.all_unit []) item =
+let item ?(on_click = fun _ -> Effect.all_unit []) ?(selected = false) item =
   let image_url = "/assets/" ^ Item.image item in
   let name = Item.to_string item in
   let description = Item.description item in
+  let selected_container_style =
+    match selected with
+    | true ->
+      Css_gen.border ~width:(`Px 1) ~color:(`Hex "#4BB4FF") ~style:`Solid ()
+    | false -> Css_gen.empty
+  in
+  let selected_name_style =
+    match selected with
+    | true -> Css_gen.color (`Hex "#4BB4FF")
+    | false -> Css_gen.empty
+  in
+
   {%html|
-    <div class="item" on_click=%{on_click}>
+    <div class="item" style=%{selected_container_style} on_click=%{on_click}>
       <img src=%{image_url#String}/>
-      <p>%{name#String}</p>
+      <p style=%{selected_name_style}>%{name#String}</p>
       <p>%{description#String}</p>
     </div>
 |}
@@ -56,12 +68,12 @@ let healthbar name health =
 ;;
 
 let header ({ name; health; _ } : Player.t) ~phase ~seconds_left =
-  let phase_name = Game_phase.to_string phase 
-in
-let beneath_text = match phase with
-  | Game_phase.Waiting_room -> "Waiting for more players"
-  | _ -> Int.to_string seconds_left ^ " seconds left in the current phase" in
-
+  let phase_name = Game_phase.to_string phase in
+  let beneath_text =
+    match phase with
+    | Game_phase.Waiting_room -> "Waiting for more players"
+    | _ -> Int.to_string seconds_left ^ " seconds left in the current phase"
+  in
   {%html|
   <div class="header">
     <div class="header-row">
