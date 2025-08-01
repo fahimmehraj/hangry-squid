@@ -51,7 +51,6 @@ let page_with_header (current_state : Client_state.t Bonsai.t) (local_ graph)
 ;;
 
 let serve_route (local_ graph) =
-  (* let route = Url_var.value url_var in *)
   let initialized, toggle_initialized =
     Bonsai.toggle ~default_model:false graph
   in
@@ -73,10 +72,7 @@ let serve_route (local_ graph) =
   Bonsai.Edge.lifecycle
     ~on_activate:
       (let%arr dispatch_new_player and toggle_initialized in
-       print_endline "did stuff";
-       let%bind.Effect () = Effect.print_s [%sexp "hi"] in
        let%bind.Effect _a = dispatch_new_player player_name_as_query in
-       let%bind.Effect () = Effect.print_s [%sexp "hiya"] in
        toggle_initialized)
     graph;
   (* let%bind.Effect he = dispatch_new_player (Rpcs.Client_message.Query.New_player player_name) *)
@@ -101,7 +97,6 @@ let serve_route (local_ graph) =
     match response, error with
     | None, Some (_, err) -> failwith (Error.to_string_hum err)
     | Some (_, current_state), _ ->
-      print_s [%sexp (current_state : Client_state.t)];
       Some current_state
     | None, _ -> None
   in

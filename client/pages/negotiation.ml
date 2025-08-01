@@ -3,7 +3,6 @@ open Bonsai_web
 open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
-(* open Bonsai.Let_syntax *)
 
 type party =
   | Me
@@ -122,25 +121,95 @@ let message_bubbles (messages : Message.t list) (me : string) =
          ]
 ;;
 
-let reply_box =
-  Vdom.Node.input
-    ~attrs:
-      [ [%css
-          {|
-    position: sticky;
-    bottom: 0;
-    width: 75%;
-    box-sizing: border-box;
-    margin-left: 4px;
-    padding: 3px 3px;
-    font-size: 16px;
-  |}]
-      ; Vdom.Attr.placeholder "Reply"
-      ]
-    ()
+(* match%bind.Effect dispatch_ready query with
+          | Ok _ -> Effect.all_unit []
+          | Error error ->
+            Effect.of_sync_fun eprint_s [%sexp (error : Error.t)])
+*)
+let reply_and_send_container
+  (tab : tab Bonsai_web.Bonsai.t)
+  (me : Player.t Bonsai_web.Bonsai.t)
+  (local_ graph)
+  =
+  let dispatcher = Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph in
+  let im_a_genius =
+    let%arr me and tab and dispatcher in
+    me, tab, dispatcher
+  in
+  let state, inject =
+    Bonsai.state_machine_with_input
+      ~default_model:""
+      ~apply_action:(fun ctx input model action ->
+        match input with
+        | Bonsai.Computation_status.Inactive -> model
+        | Active ((me : Player.t), tab, dispatcher) ->
+          (match action with
+           | `Update_message new_message -> new_message
+           | `Send_message ->
+             let query =
+               Rpcs.Client_message.Query.Chat_message
+                 (match tab with
+                  | All ->
+                    { sender = me.name
+                    ; recipient = None
+                    ; contents = model
+                    ; timestamp = Time_ns.now ()
+                    }
+                  | Dm recipient ->
+                    { sender = me.name
+                    ; recipient = Some recipient
+                    ; contents = model
+                    ; timestamp = Time_ns.now ()
+                    })
+             in
+             Bonsai_web.Bonsai.Apply_action_context.schedule_event
+               ctx
+               (match%bind.Effect dispatcher query with
+                | Ok _ -> Effect.all_unit []
+                | Error error ->
+                  Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]);
+             ""))
+      im_a_genius
+      graph
+  in
+  let%arr state and inject in
+  let send_button =
+    Vdom.Node.button
+      ~attrs:[ Vdom.Attr.on_click (fun _ -> inject `Send_message) ]
+      [ Vdom.Node.text "Reply" ]
+  in
+  let reply_box =
+    Vdom.Node.input
+      ~attrs:
+        [ [%css
+            {|
+      position: sticky;
+      bottom: 0;
+      width: 75%;
+      box-sizing: border-box;
+      margin-left: 4px;
+      padding: 3px 3px;
+      font-size: 16px;
+    |}]
+        ; Vdom.Attr.placeholder "Reply"
+        ; Vdom.Attr.type_ "text"
+        ; Vdom.Attr.string_property "value" state
+        ; Vdom.Attr.on_input (fun _ current_message ->
+            inject (`Update_message current_message))
+        ]
+      ()
+  in
+  Vdom.Node.div [ reply_box; send_button ]
 ;;
 
-let messages_window messages ~me =
+let messages_window
+  messages
+  ~(me : Player.t Bonsai_web.Bonsai.t)
+  tab
+  (local_ graph)
+  =
+  let reply_and_send_container = reply_and_send_container tab me graph in
+  let%arr messages and me and reply_and_send_container in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -152,7 +221,7 @@ let messages_window messages ~me =
 
   |}]
       ]
-    [ message_bubbles messages me; reply_box ]
+    [ message_bubbles messages me.name; reply_and_send_container ]
 ;;
 
 let chat_window
@@ -163,13 +232,13 @@ let chat_window
   (local_ graph)
   =
   let tab, set_tab = Bonsai.state All graph in
-  let%arr players
-  and tab
-  and set_tab
-  and my_messages
-  and public_messages
-  and me in
   let messages =
+    let%arr players
+    and tab
+    and set_tab
+    and my_messages
+    and public_messages
+    and me in
     match tab with
     | All -> public_messages
     | Dm other_party ->
@@ -177,6 +246,8 @@ let chat_window
        | None -> []
        | Some messages -> messages)
   in
+  let messages_window_stateful = messages_window messages ~me tab graph in
+  let%arr messages_window_stateful and players and tab and set_tab and me in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -189,7 +260,7 @@ let chat_window
   |}]
       ]
     [ players_list_element players tab set_tab ~me
-    ; messages_window messages ~me:me.name
+    ; messages_window_stateful
     ]
 ;;
 

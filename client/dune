@@ -5,10 +5,9 @@
  (promote (until-clean))
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html)))
-
-(include_subdirs qualified)
+ (include_subdirs qualified)
 
 (env
  (dev
   (flags
-   (:standard -w -27-32))))
+   (:standard -w -69 -w -34 -w -32 -w -27))))

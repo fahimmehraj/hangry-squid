@@ -59,14 +59,15 @@ let update_player_item_choices_and_round
           None)
   in
   let new_item_choices =
-    Map.mapi
-      !authoritative_game_state.players
-      ~f:(fun ~key ~data ->
-        let player_name = key in 
-        ignore data;
-        if List.mem players_with_item_blockers_used_on player_name ~equal:String.equal
-        then None
-        else Some (Item.get_two_random_items_no_duplicates ()))
+    Map.mapi !authoritative_game_state.players ~f:(fun ~key ~data ->
+      let player_name = key in
+      ignore data;
+      if List.mem
+           players_with_item_blockers_used_on
+           player_name
+           ~equal:String.equal
+      then None
+      else Some (Item.get_two_random_items_no_duplicates ()))
   in
   authoritative_game_state
   := { !authoritative_game_state with
@@ -154,8 +155,13 @@ let handle_message
       !authoritative_game_state.current_phase
   with
   | true ->
-    authoritative_game_state
-    := Game_state.add_message !authoritative_game_state message;
+    let new_game_state =
+      match message.recipient with
+      | None ->
+        Game_state.add_public_message !authoritative_game_state message
+      | Some _ -> Game_state.add_message !authoritative_game_state message
+    in
+    authoritative_game_state := new_game_state;
     Ok "OK"
   | false -> Error "It is not currently the negotiation phase"
 ;;
@@ -185,11 +191,14 @@ let handle_new_player
   match Game_state.name_taken !authoritative_game_state name with
   | true -> Error "Name already taken"
   | false ->
-    authoritative_game_state
-    := Game_state.add_player
-         !authoritative_game_state
-         (Player.new_player name);
-    Ok "OK"
+    if !authoritative_game_state.current_round > 0
+    then Error "Name already taken"
+    else (
+      authoritative_game_state
+      := Game_state.add_player
+           !authoritative_game_state
+           (Player.new_player name);
+      Ok "OK")
 ;;
 
 let handle_client_message
