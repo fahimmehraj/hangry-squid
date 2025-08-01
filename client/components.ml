@@ -55,7 +55,13 @@ let healthbar name health =
     ]
 ;;
 
-let header ({ name; health; _ } : Player.t) ~phase_name ~seconds_left =
+let header ({ name; health; _ } : Player.t) ~phase ~seconds_left =
+  let phase_name = Game_phase.to_string phase 
+in
+let beneath_text = match phase with
+  | Game_phase.Waiting_room -> "Waiting for more players"
+  | _ -> Int.to_string seconds_left ^ " seconds left in the current phase" in
+
   {%html|
   <div class="header">
     <div class="header-row">
@@ -65,7 +71,7 @@ let header ({ name; health; _ } : Player.t) ~phase_name ~seconds_left =
       </div>
     </div>
     <p>%{phase_name#String}</p>
-    <p>%{seconds_left#Int} seconds left in the current phase</p>
+    <p>%{beneath_text#String}</p>
   </div>
 |}
 ;;

@@ -172,7 +172,10 @@ let chat_window
   let messages =
     match tab with
     | All -> public_messages
-    | Dm other_party -> match Map.find my_messages other_party with None -> [] | Some messages -> messages
+    | Dm other_party ->
+      (match Map.find my_messages other_party with
+       | None -> []
+       | Some messages -> messages)
   in
   Vdom.Node.div
     ~attrs:
@@ -257,7 +260,5 @@ let body (current_state : Client_state.t Bonsai.t) (local_ graph) =
   Vdom.Node.div
     ~attrs:
       [ [%css {| height: 100%; display: flex; flex-direction: column; |}] ]
-    [ Components.header me ~phase_name:"Negotiation Phase" ~seconds_left:60
-    ; content
-    ]
+    [ content ]
 ;;

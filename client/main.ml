@@ -28,12 +28,12 @@ let page_with_header (current_state : Client_state.t Bonsai.t) (local_ graph)
   in
   let header =
     let%arr now and round_start and me and current_phase in
-    let seconds_left =
-      Time_ns.abs_diff now round_start |> Time_ns.Span.to_int_sec
+    let seconds_left = Time_ns.Span.((Game_phase.to_duration current_phase |> Time_ns.Span.of_int_sec) - 
+      Time_ns.abs_diff now round_start |> Time_ns.Span.to_int_sec)
     in
     Components.header
       me
-      ~phase_name:(Game_phase.to_string current_phase)
+      ~phase:current_phase
       ~seconds_left
   in
   let content =
