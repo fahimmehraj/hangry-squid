@@ -122,8 +122,7 @@ let serve_route (local_ graph) =
           (match action with
            | `Ack_join accepted_name -> Accepted_name accepted_name
            | `Failed_join error ->
-             Entering_name
-               (Landing_state.name model, Some (Error.to_string_hum error))
+             Entering_name (Landing_state.name model, Some error)
            | `Update_name new_name -> Entering_name (new_name, None)
            | `Try_to_join_game ->
              let player_name_query =
@@ -134,11 +133,19 @@ let serve_route (local_ graph) =
                let%bind.Effect result = dispatcher player_name_query in
                match result with
                | Error error ->
-                 Bonsai.Apply_action_context.inject ctx (`Failed_join error)
-               | Ok _ ->
                  Bonsai.Apply_action_context.inject
                    ctx
-                   (`Ack_join (Landing_state.name model))
+                   (`Failed_join (Error.to_string_hum error))
+               | Ok resp ->
+                 (match resp with
+                  | Ok _ ->
+                    Bonsai.Apply_action_context.inject
+                      ctx
+                      (`Ack_join (Landing_state.name model))
+                  | Error error_message ->
+                    Bonsai.Apply_action_context.inject
+                      ctx
+                      (`Failed_join error_message))
              in
              Bonsai_web.Bonsai.Apply_action_context.schedule_event
                ctx
