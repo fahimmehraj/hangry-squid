@@ -1,6 +1,7 @@
 open! Core
 open Bonsai_web
 open Hangry_squid
+open Bonsai.Let_syntax
 module Url_var = Bonsai_web_ui_url_var
 
 let player_in_waiting_room name avatar_url =
@@ -47,19 +48,8 @@ let result_component (result : Round_result.t) =
     ]
 ;;
 
-let private_results =
-  [ { Round_result.player_in_question = "Player 7"
-    ; message = "Stabbed you for 25 health points"
-    }
-  ; { player_in_question = "Player 3"
-    ; message = "Stabbed you for 25 health points"
-    }
-  ; { player_in_question = "Player 6"; message = "Failed to stab you" }
-  ; { player_in_question = "Player 7"
-    ; message = "was stabbed by you for 25 damage"
-    }
-  ]
-  |> List.map ~f:result_component
+let private_results results =
+  List.map results ~f:result_component
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -71,11 +61,8 @@ let private_results =
          ]
 ;;
 
-let public_results =
-  [ { Round_result.player_in_question = "Player 2"; message = "has died" }
-  ; { player_in_question = "Player 4"; message = "has died" }
-  ]
-  |> List.map ~f:result_component
+let public_results results =
+  List.map results ~f:result_component
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -87,7 +74,7 @@ let public_results =
          ]
 ;;
 
-let left_section =
+let left_section results =
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -97,10 +84,12 @@ let left_section =
     height: 100%;
   |}]
       ]
-    [ Vdom.Node.h2 [ Vdom.Node.text "Private Results" ]; private_results ]
+    [ Vdom.Node.h2 [ Vdom.Node.text "Private Results" ]
+    ; private_results results
+    ]
 ;;
 
-let right_section =
+let right_section results =
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -110,10 +99,14 @@ let right_section =
     height: 100%;
   |}]
       ]
-    [ Vdom.Node.h2 [ Vdom.Node.text "Public Results" ]; public_results ]
+    [ Vdom.Node.h2 [ Vdom.Node.text "Public Results" ]
+    ; public_results results
+    ]
 ;;
 
-let content =
+let content (client_state : Client_state.t Bonsai.t) =
+  let%sub { my_results; public_results; _ } = client_state in
+  let%arr my_results and public_results in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -125,19 +118,19 @@ let content =
     flex-grow: 1;
   |}]
       ]
-    [ left_section; right_section ]
+    [ left_section my_results; right_section public_results ]
 ;;
 
 let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
-  Bonsai.return
-    (Vdom.Node.div
-       ~attrs:
-         [ [%css
-             {|
+  let%arr content = content client_state in
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
   height: 100%;
   display: flex;
   flex-direction: column;
 |}]
-         ]
-       [ content ])
+      ]
+    [ content ]
 ;;
