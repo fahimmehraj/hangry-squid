@@ -1,11 +1,10 @@
+(* write .mli files for pages *)
 open! Core
 open! Async_kernel
 open! Async_rpc_kernel
 
-(* open Async_js *)
 open Bonsai_web
 
-(* open Async_kernel.Let_syntax *)
 open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
@@ -131,6 +130,7 @@ let render_game_page name (local_ graph) =
         graph
     in
     let%arr result in
+    (* do something with Error types? *)
     match result.last_ok_response with
     | None -> None
     | Some (_query, resp) -> Some resp

@@ -1,5 +1,6 @@
 open! Core
 
+(* Change is_alive to a method instead of redundantly making it a field *)
 type t =
   { health : int
   ; inventory : Item.t list
@@ -9,6 +10,7 @@ type t =
 [@@deriving sexp, bin_io]
 
 let default_health = 100
+
 let default_inventory = []
 let equal t1 t2 = String.equal t1.name t2.name
 

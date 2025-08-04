@@ -231,14 +231,13 @@ let chat_window
   ~(me : Player.t Bonsai.t)
   (local_ graph)
   =
+  (* let _s = Bonsai.assoc_list (module Restricted_player_view) players ~f:(fun player graph -> ()) in *)
   let tab, set_tab = Bonsai.state All graph in
   let messages =
     let%arr players
     and tab
-    and set_tab
     and my_messages
-    and public_messages
-    and me in
+    and public_messages in
     match tab with
     | All -> public_messages
     | Dm other_party ->
@@ -264,6 +263,7 @@ let chat_window
     ]
 ;;
 
+(* Remove unnecessary _with_header *)
 let chat_window_with_header
   players
   my_messages
@@ -325,9 +325,8 @@ let content (current_state : Client_state.t Bonsai.t) (local_ graph) =
 ;;
 
 let body (current_state : Client_state.t Bonsai.t) (local_ graph) =
-  let%sub { me; _ } = current_state in
   let content = content current_state graph in
-  let%arr me and content in
+  let%arr content in
   Vdom.Node.div
     ~attrs:
       [ [%css {| height: 100%; display: flex; flex-direction: column; |}] ]
