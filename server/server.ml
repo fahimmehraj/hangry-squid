@@ -95,7 +95,7 @@ let rec handle_round
   compute_round_results authoritative_game_state;
   let%bind () = phase authoritative_game_state Round_results in
   let players_left = Game_state.players_left !authoritative_game_state in
-  if players_left > 0 && round < 10
+  if players_left > 1 && round < 10
   then handle_round authoritative_game_state ~round:(round + 1)
   else (
     let%bind () = phase authoritative_game_state Game_results in
@@ -188,17 +188,19 @@ let handle_new_player
   (name : string)
   : Rpcs.Client_message.Response.t
   =
-  match Game_state.name_taken !authoritative_game_state name with
-  | true -> Error "Name already taken"
-  | false ->
-    if !authoritative_game_state.current_round > 0
-    then Error "Game is in progress, no new player can be created"
-    else (
-      authoritative_game_state
-      := Game_state.add_player
-           !authoritative_game_state
-           (Player.new_player name);
-      Ok "OK")
+  match
+    ( !authoritative_game_state.current_round > 0
+    , Game_state.name_taken !authoritative_game_state name )
+  with
+  | true, true -> Ok "OK"
+  | false, false ->
+    authoritative_game_state
+    := Game_state.add_player
+         !authoritative_game_state
+         (Player.new_player name);
+    Ok "OK"
+  | false, true -> Error "Name already taken"
+  | true, false -> Error "Game in progress, cannot join as a new player"
 ;;
 
 let handle_client_message
@@ -215,6 +217,25 @@ let handle_client_message
   | Item_used action -> handle_item_used authoritative_game_state action
 ;;
 
+let urls =
+  [ "../client/assets/medical_kit.png"
+  ; "../client/assets/observer.png"
+  ; "../client/assets/poison_arrow.png"
+  ; "../client/assets/gamblers_potion.png"
+  ; "../client/assets/pocket_knife.png"
+  ; "../client/assets/item_blocker.png"
+  ]
+;;
+
+let images : Cohttp_static_handler.Asset.t list =
+  List.map urls ~f:(fun url ->
+    Cohttp_static_handler.Asset.local
+      (Cohttp_static_handler.Asset.Kind.file ~rel:"img" ~type_:"image/png")
+      (Cohttp_static_handler.Asset.What_to_serve.file
+         ~relative_to:`Exe
+         ~path:url))
+;;
+
 let web_handler =
   Cohttp_static_handler.Single_page_handler.create_handler
     (Cohttp_static_handler.Single_page_handler.default_with_body_div
@@ -222,17 +243,17 @@ let web_handler =
     ~title:"Hangry Squid"
     ~on_unknown_url:`Not_found
     ~assets:
-      [ Cohttp_static_handler.Asset.local
+      (Cohttp_static_handler.Asset.local
           Cohttp_static_handler.Asset.Kind.javascript
           (Cohttp_static_handler.Asset.What_to_serve.file
              ~relative_to:`Exe
              ~path:"../client/main.bc.js")
-      ; Cohttp_static_handler.Asset.local
-          Cohttp_static_handler.Asset.Kind.css
-          (Cohttp_static_handler.Asset.What_to_serve.file
-             ~relative_to:`Exe
-             ~path:"../client/style.css")
-      ]
+        :: Cohttp_static_handler.Asset.local
+             Cohttp_static_handler.Asset.Kind.css
+             (Cohttp_static_handler.Asset.What_to_serve.file
+                ~relative_to:`Exe
+                ~path:"../client/style.css")
+        :: images)
 ;;
 
 let start_server host_and_port authoritative_game_state =

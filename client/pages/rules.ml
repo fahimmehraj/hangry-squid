@@ -28,7 +28,7 @@ let item { name; description; image_url } =
   {%html|
     <div class="item">
       <img src=%{image_url#String}/>
-      <p>%{name#String}</p>
+      <p class="bold-text">%{name#String}</p>
       <p>%{description#String}</p>
     </div>
 |}

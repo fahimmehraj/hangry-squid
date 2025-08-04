@@ -42,7 +42,6 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   let players =
     Map.data t.players
     |> List.map ~f:Restricted_player_view.of_player
-    |> List.filter ~f:(fun player -> not (String.equal name player.name))
   in
   let ready_players = t.ready_players in
   let public_messages = t.public_messages in
