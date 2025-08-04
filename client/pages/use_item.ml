@@ -10,8 +10,12 @@ let avatar_url =
 
 type action =
   { target : Restricted_player_view.t option
-  ; items : Item.t list
+  ; item : Item.t option
   }
+
+let is_complete_action action =
+  Option.is_some action.target && Option.is_some action.item
+;;
 
 let player_component player state inject =
   let color =
@@ -21,6 +25,14 @@ let player_component player state inject =
       (match Restricted_player_view.equal target player with
        | true -> "#4BB4FF"
        | false -> "transparent")
+  in
+  let font_color =
+    match state.target with
+    | None -> "#000000"
+    | Some target ->
+      (match Restricted_player_view.equal target player with
+       | true -> "#4BB4FF"
+       | false -> "000000")
   in
   let container_styles =
     [%css
@@ -50,7 +62,7 @@ let player_component player state inject =
     [ Vdom.Node.img ~attrs:[ Vdom.Attr.src avatar_url; avatar_styles ] ()
     ; Vdom.Node.h2
         ~attrs:[ [%css {|
-      color: %{color};
+      color: %{font_color};
     |}] ]
         [ Vdom.Node.text player.name ]
     ]
@@ -100,7 +112,7 @@ let inventory (items : Item.t list Bonsai.t) state inject =
   let item_components =
     let%arr items and state and inject in
     List.map items ~f:(fun item ->
-      let item_selected = List.mem state.items item ~equal:Item.equal in
+      let item_selected = Option.equal Item.equal state.item (Some item) in
       Components.item item ~selected:item_selected ~on_click:(fun _ ->
         inject (`Toggle_item item)))
   in
@@ -126,55 +138,93 @@ let right_section (me : Player.t Bonsai.t) state inject (local_ graph) =
     [ Vdom.Node.h2 [ Vdom.Node.text "Your Inventory" ]; inventory_stateful ]
 ;;
 
+let submit_button state inject =
+  let%arr state and inject in
+  let is_complete_action = is_complete_action state in
+  Vdom.Node.button
+    ~attrs:
+      [ Vdom.Attr.on_click (fun _ -> inject `Submit_action)
+      ; (if is_complete_action then Vdom.Attr.empty else Vdom.Attr.disabled)
+      ]
+    [ Vdom.Node.text "Use Item" ]
+;;
+
 let content (client_state : Client_state.t Bonsai.t) (local_ graph) =
+  let dispatcher = Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph in
+  let input =
+    let%arr client_state and dispatcher in
+    client_state, dispatcher
+  in
   let state, inject =
     Bonsai.state_machine_with_input
-      ~default_model:{ target = None; items = [] }
+      ~default_model:{ target = None; item = None }
       ~apply_action:(fun ctx input model action ->
         match action with
         | `Update_target target ->
-          { target = Some target; items = model.items }
+          { target = Some target; item = model.item }
         | `Toggle_item item ->
-          (match List.mem model.items item ~equal:Item.equal with
-           | false -> { target = model.target; items = item :: model.items }
-           | true ->
-             { target = model.target
-             ; items =
-                 List.filter model.items ~f:(fun cur_items ->
-                   not (Item.equal cur_items item))
-             }))
-      client_state
+          (match Option.equal Item.equal (Some item) model.item with
+           | false -> { target = model.target; item = Some item }
+           | true -> { target = model.target; item = None })
+        | `Submit_action ->
+          (match input, model.target, model.item with
+           | Bonsai.Computation_status.Inactive, _, _
+           | _, None, _
+           | _, _, None ->
+             model
+           | ( Active ((client_state : Client_state.t), dispatcher)
+             , Some target
+             , Some item ) ->
+             let query =
+               Rpcs.Client_message.Query.Item_used
+                 { Action.user = client_state.me.name
+                 ; recipient = target.name
+                 ; item_used = item
+                 }
+             in
+             Bonsai_web.Bonsai.Apply_action_context.schedule_event
+               ctx
+               (match%bind.Effect dispatcher query with
+                | Ok _ -> Effect.all_unit []
+                | Error error ->
+                  Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]);
+             { target = None; item = None }))
+      input
       graph
   in
   let%sub { me; players; _ } = client_state in
   let left_section_stateful = left_section players state inject graph in
   let right_section_stateful = right_section me state inject graph in
-  let%arr left_section_stateful and right_section_stateful in
-  Vdom.Node.div
-    ~attrs:
-      [ [%css
-          {|
+  let submit_button = submit_button state inject in
+  let main_content =
+    let%arr left_section_stateful and right_section_stateful in
+    Vdom.Node.div
+      ~attrs:
+        [ [%css
+            {|
     display: flex;
     justify-content: space-around;
     margin: 8px;
     gap: 8px;
     flex-grow: 1;
   |}]
-      ]
-    [ left_section_stateful; right_section_stateful ]
+        ]
+      [ left_section_stateful; right_section_stateful ]
+  in
+  let%arr main_content and submit_button in
+  Vdom.Node.div [ main_content; submit_button ]
 ;;
 
 let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
   let%arr content_stateful = content client_state graph in
-  Bonsai.return
-    (Vdom.Node.div
-       ~attrs:
-         [ [%css
-             {|
+  Vdom.Node.div
+    ~attrs:
+      [ [%css
+          {|
   height: 100%;
   display: flex;
   flex-direction: column;
 |}]
-         ]
-       [ content_stateful ])
+      ]
+    [ content_stateful ]
 ;;

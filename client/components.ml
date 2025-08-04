@@ -23,7 +23,7 @@ let item ?(on_click = fun _ -> Effect.all_unit []) ?(selected = false) item =
     <div class="item" style=%{selected_container_style} on_click=%{on_click}>
       <img src=%{image_url#String}/>
       <p style=%{selected_name_style}>%{name#String}</p>
-      <p>%{description#String}</p>
+      <p style=%{selected_name_style}>%{description#String}</p>
     </div>
 |}
 ;;

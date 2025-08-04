@@ -9,7 +9,15 @@ let items_to_select_from
   ~(me : Player.t Bonsai.t)
   (local_ graph)
   =
-  let selected, toggle_selected = Bonsai.toggle ~default_model:false graph in
+  let selected, toggle_selected = Bonsai.state false graph in
+
+  Bonsai.Edge.lifecycle
+    ~on_activate:
+      (let%arr toggle_selected in
+       toggle_selected false)
+    graph;
+
+
   let dispatch_item_select =
     Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph
   in
@@ -23,7 +31,7 @@ let items_to_select_from
   in
   let on_click item _ =
     match%bind.Effect dispatch_item_select (query item) with
-    | Ok _ -> toggle_selected
+    | Ok _ -> toggle_selected true
     | Error error -> Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]
   in
   match item_choices, selected with
