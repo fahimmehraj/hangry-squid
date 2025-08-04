@@ -35,7 +35,7 @@ let items_to_select_from
     | Error error -> Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]
   in
   match item_choices, selected with
-  | None, _ -> Vdom.Node.text "No items yet"
+  | None, _ -> Vdom.Node.text "You have been blocked from using an item this round"
   | _, true -> Vdom.Node.text "You have selected an item"
   | Some (item1, item2), false ->
     Vdom.Node.div

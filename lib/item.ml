@@ -62,7 +62,7 @@ let description = function
       { add_health; remove_health; chance_of_adding; chance_of_removing } ->
     [%string
       "%{chance_of_adding#Float}% to gain %{add_health#Int} HP\n\
-       %{chance_of_removing#Float}% to gain %{remove_health#Int} HP"]
+       %{chance_of_removing#Float}% to lose %{remove_health#Int} HP"]
 ;;
 
 let image = function

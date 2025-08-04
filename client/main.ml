@@ -17,31 +17,35 @@ let loading_page = {%html|
 let page_with_header (current_state : Client_state.t Bonsai.t) (local_ graph)
   =
   let%sub { round_start; current_phase; me; _ } = current_state in
-  let now =
-    Bonsai.Clock.approx_now ~tick_every:(Time_ns.Span.of_sec 1.) graph
-  in
-  let header =
-    let%arr now and round_start and me and current_phase in
-    let seconds_left =
-      Time_ns.Span.(
-        (Game_phase.to_duration current_phase |> Time_ns.Span.of_int_sec)
-        - Time_ns.abs_diff now round_start
-        |> Time_ns.Span.to_int_sec)
+  let%sub { is_alive; _ } = me in
+  match%sub is_alive with
+  | false -> Pages.Death.body graph
+  | true ->
+    let now =
+      Bonsai.Clock.approx_now ~tick_every:(Time_ns.Span.of_sec 1.) graph
     in
-    Components.header me ~phase:current_phase ~seconds_left
-  in
-  let content =
-    match%sub current_phase with
-    | Waiting_room -> Pages.Waiting_room.body current_state graph
-    | Rules -> Pages.Rules.body ()
-    | Item_selection -> Pages.Select.body current_state graph
-    | Negotiation -> Pages.Negotiation.body current_state graph
-    | Item_usage -> Pages.Use_item.body current_state graph
-    | Round_results -> Pages.Outcome.body current_state graph
-    | Game_results -> Pages.Game_over.body current_state graph
-  in
-  let%arr header and content in
-  Vdom.Node.div [ header; content ]
+    let header =
+      let%arr now and round_start and me and current_phase in
+      let seconds_left =
+        Time_ns.Span.(
+          (Game_phase.to_duration current_phase |> Time_ns.Span.of_int_sec)
+          - Time_ns.abs_diff now round_start
+          |> Time_ns.Span.to_int_sec)
+      in
+      Components.header me ~phase:current_phase ~seconds_left
+    in
+    let content =
+      match%sub current_phase with
+      | Waiting_room -> Pages.Waiting_room.body current_state graph
+      | Rules -> Pages.Rules.body ()
+      | Item_selection -> Pages.Select.body current_state graph
+      | Negotiation -> Pages.Negotiation.body current_state graph
+      | Item_usage -> Pages.Use_item.body current_state graph
+      | Round_results -> Pages.Outcome.body current_state graph
+      | Game_results -> Pages.Game_over.body current_state graph
+    in
+    let%arr header and content in
+    Vdom.Node.div [ header; content ]
 ;;
 
 let render_game_page name (local_ graph) =
