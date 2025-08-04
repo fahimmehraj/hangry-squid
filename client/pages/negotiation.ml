@@ -103,7 +103,7 @@ let players_list_element
 ;;
 
 let message_bubbles (messages : Message.t list) (me : string) =
-  List.map messages ~f:(fun message ->
+  List.map (List.rev messages) ~f:(fun message ->
     let who =
       match String.equal message.sender me with true -> Me | false -> Other
     in
@@ -121,11 +121,6 @@ let message_bubbles (messages : Message.t list) (me : string) =
          ]
 ;;
 
-(* match%bind.Effect dispatch_ready query with
-          | Ok _ -> Effect.all_unit []
-          | Error error ->
-            Effect.of_sync_fun eprint_s [%sexp (error : Error.t)])
-*)
 let reply_and_send_container
   (tab : tab Bonsai_web.Bonsai.t)
   (me : Player.t Bonsai_web.Bonsai.t)
@@ -162,12 +157,14 @@ let reply_and_send_container
                     ; timestamp = Time_ns.now ()
                     })
              in
-             Bonsai_web.Bonsai.Apply_action_context.schedule_event
-               ctx
-               (match%bind.Effect dispatcher query with
-                | Ok _ -> Effect.all_unit []
-                | Error error ->
-                  Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]);
+             if not (String.equal model "")
+             then
+               Bonsai_web.Bonsai.Apply_action_context.schedule_event
+                 ctx
+                 (match%bind.Effect dispatcher query with
+                  | Ok _ -> Effect.all_unit []
+                  | Error error ->
+                    Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]);
              ""))
       im_a_genius
       graph
@@ -194,6 +191,10 @@ let reply_and_send_container
         ; Vdom.Attr.placeholder "Reply"
         ; Vdom.Attr.type_ "text"
         ; Vdom.Attr.string_property "value" state
+        ; Vdom.Attr.on_keydown (fun event ->
+            match Js_of_ocaml.Dom_html.Keyboard_code.of_event event with
+            | Enter -> inject `Send_message
+            | _ -> Effect.all_unit [])
         ; Vdom.Attr.on_input (fun _ current_message ->
             inject (`Update_message current_message))
         ]
@@ -218,7 +219,6 @@ let messages_window
     flex-direction: column;
     flex-grow: 1;
     overflow: auto;
-
   |}]
       ]
     [ message_bubbles messages me.name; reply_and_send_container ]
@@ -255,8 +255,8 @@ let chat_window
     display: flex;
     border: 2px solid #000000;
     gap: 8px;
-    overflow-y: auto;
-
+    overflow-y: scroll;
+    height: 76vh;
   |}]
       ]
     [ players_list_element players tab set_tab ~me

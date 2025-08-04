@@ -192,7 +192,7 @@ let handle_new_player
   | true -> Error "Name already taken"
   | false ->
     if !authoritative_game_state.current_round > 0
-    then Error "Name already taken"
+    then Error "Game is in progress, no new player can be created"
     else (
       authoritative_game_state
       := Game_state.add_player
