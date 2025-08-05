@@ -35,7 +35,7 @@ let reset (authoritative_game_state : Game_state.t ref) =
   return ()
 ;;
 
-let phase
+let set_phase
   (authoritative_game_state : Game_state.t ref)
   (phase_to_change_to : Game_phase.t)
   =
@@ -89,16 +89,16 @@ let rec handle_round
   : unit Deferred.t
   =
   update_player_item_choices_and_round authoritative_game_state round;
-  let%bind () = phase authoritative_game_state Item_selection in
-  let%bind () = phase authoritative_game_state Negotiation in
-  let%bind () = phase authoritative_game_state Item_usage in
+  let%bind () = set_phase authoritative_game_state Item_selection in
+  let%bind () = set_phase authoritative_game_state Negotiation in
+  let%bind () = set_phase authoritative_game_state Item_usage in
   compute_round_results authoritative_game_state;
-  let%bind () = phase authoritative_game_state Round_results in
+  let%bind () = set_phase authoritative_game_state Round_results in
   let players_left = Game_state.players_left !authoritative_game_state in
   if players_left > 1 && round < 10
   then handle_round authoritative_game_state ~round:(round + 1)
   else (
-    let%bind () = phase authoritative_game_state Game_results in
+    let%bind () = set_phase authoritative_game_state Game_results in
     reset authoritative_game_state)
 ;;
 
@@ -108,7 +108,7 @@ let everyone_is_ready (authoritative_game_state : Game_state.t ref) =
 ;;
 
 let start_game (authoritative_game_state : Game_state.t ref) =
-  let%bind () = phase authoritative_game_state Rules in
+  let%bind () = set_phase authoritative_game_state Rules in
   handle_round authoritative_game_state ~round:1
 ;;
 
@@ -141,7 +141,7 @@ let handle_item_selection
     authoritative_game_state
     := Game_state.add_item_to_inventory !authoritative_game_state query;
     Ok "OK"
-  | false -> Error "It is not currently the item selection phase"
+  | false -> Error "It is not currently the item selection set_phase"
 ;;
 
 let handle_message

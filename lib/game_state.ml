@@ -396,7 +396,7 @@ let apply_item_effect t (action : Action.t) (item_effect : Item_effect.t) =
 
 let apply_actions_taken t =
   let cleared_private_results =
-    { t with private_results = String.Map.empty }
+    { t with private_results = String.Map.empty ; public_results = [] }
   in
   List.fold
     t.actions_taken_in_round
@@ -463,5 +463,5 @@ let compile_all_elimination_results t =
 let players_left t =
   Map.fold t.players ~init:0 ~f:(fun ~key ~data acc ->
     ignore key;
-    if data.health <> 0 then acc + 1 else acc)
+    if data.is_alive then acc + 1 else acc)
 ;;

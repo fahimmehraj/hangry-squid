@@ -71,6 +71,7 @@ let items =
   |> List.map ~f:item
   |> Vdom.Node.div ~attrs:[ Vdom.Attr.classes [ "items" ] ]
 ;;
+
 let loading_page = {%html|
   <p>Loading...</p>
 |}
@@ -161,19 +162,18 @@ let render_landing_page update_join_game_state error =
             match Js_of_ocaml.Dom_html.Keyboard_code.of_event event with
             | Enter -> update_join_game_state `Try_to_join_game
             | _ -> Effect.all_unit [])
-
         ]
       ()
   in
-  let error_message = 
-    let error_text = match error with None -> "" | Some error_message -> error_message in
-    Vdom.Node.div 
-      ~attrs: [
-        [%css {|
+  let error_message =
+    let error_text =
+      match error with None -> "" | Some error_message -> error_message
+    in
+    Vdom.Node.div
+      ~attrs:[ [%css {|
         color: red;
-        |}]
-      ]
-      [ Vdom.Node.text error_text ] 
+        |}] ]
+      [ Vdom.Node.text error_text ]
   in
   let rules_section = Vdom.Node.div [ rules; items ] in
   {%html|
