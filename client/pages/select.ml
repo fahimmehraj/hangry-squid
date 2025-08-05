@@ -10,14 +10,11 @@ let items_to_select_from
   (local_ graph)
   =
   let selected, toggle_selected = Bonsai.state false graph in
-
   Bonsai.Edge.lifecycle
     ~on_activate:
       (let%arr toggle_selected in
        toggle_selected false)
     graph;
-
-
   let dispatch_item_select =
     Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph
   in
@@ -30,12 +27,14 @@ let items_to_select_from
     Rpcs.Client_message.Query.Item_selection { name = me.name; item }
   in
   let on_click item _ =
+    let%bind.Effect () = toggle_selected true in
     match%bind.Effect dispatch_item_select (query item) with
-    | Ok _ -> toggle_selected true
+    | Ok _ -> Effect.return ()
     | Error error -> Effect.of_sync_fun eprint_s [%sexp (error : Error.t)]
   in
   match item_choices, selected with
-  | None, _ -> Vdom.Node.text "You have been blocked from using an item this round"
+  | None, _ ->
+    Vdom.Node.text "You have been blocked from using an item this round"
   | _, true -> Vdom.Node.text "You have selected an item"
   | Some (item1, item2), false ->
     Vdom.Node.div
@@ -50,6 +49,7 @@ let items_to_select_from
     row-gap: 4px;
     overflow-y: auto;
     min-width: 400px;
+    justify-content:space-between;
     flex-grow: 1;
     |}]
         ]

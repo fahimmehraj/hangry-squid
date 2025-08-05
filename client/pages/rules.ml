@@ -68,15 +68,10 @@ let items =
 
 let content = Vdom.Node.div [ rules; items ]
 
-(* let example_items =
+let body () = Bonsai.return (
   {%html|
-  <div>
-    <div class="item">
-      <p>Medical Kit</p>
-      <p>Restores 25 
+    <div class="flex-column mx-auto items-center">
+      %{content}
     </div>
-  </div>
-|}
-;; *)
-
-let body () = Bonsai.return (Vdom.Node.div [ content; ])
+  |}
+)

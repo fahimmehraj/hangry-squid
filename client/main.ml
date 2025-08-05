@@ -23,8 +23,7 @@ let rules =
       <li>Game consists of 10 rounds</li>
       <li>In each round you have 15 seconds to select an item, 60 seconds to discuss with others, and 15 seconds to use any items</li>
       <li>Items are one time use only and not selecting items will result in a pass and all items transfer to the next round</li>
-      <li>Survive as many rounds as you can</li>
-      <li>Lie, back stab, help, and do whatever it takes to take a larger share of the prize money</li>
+      <li>Survive as many rounds as you can to take a larger share of the prize money</li>
     </ol>
   </div>
 |}
@@ -156,6 +155,7 @@ let render_landing_page update_join_game_state error =
       ~attrs:
         [ Vdom.Attr.placeholder "Enter name"
         ; Vdom.Attr.type_ "text"
+        ; Vdom.Attr.class_ "name-input"
         ; Vdom.Attr.on_input (fun _ current_name ->
             update_join_game_state (`Update_name current_name))
         ; Vdom.Attr.on_keydown (fun event ->
@@ -192,7 +192,7 @@ let render_landing_page update_join_game_state error =
         <div class="m-4">
           %{error_message}
         </div>
-        <div>
+        <div class="mx-auto items-center">
           %{rules_section}
         </div>
       </div>
@@ -224,6 +224,7 @@ let serve_route (local_ graph) =
              Entering_name (Landing_state.name model, Some error)
            | `Update_name new_name -> Entering_name (new_name, None)
            | `Try_to_join_game ->
+              if String.equal "" (Landing_state.name model) then model else (
              let player_name_query =
                Rpcs.Client_message.Query.New_player
                  (Landing_state.name model)
@@ -249,7 +250,7 @@ let serve_route (local_ graph) =
              Bonsai_web.Bonsai.Apply_action_context.schedule_event
                ctx
                my_new_effect;
-             model)
+             model))
         | Inactive -> model)
       dispatcher
       graph

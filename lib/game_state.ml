@@ -40,8 +40,7 @@ let get_client_state_from_name (t : t) (name : string) : Client_state.t =
   let current_round = t.current_round in
   let current_phase = t.current_phase in
   let players =
-    Map.data t.players
-    |> List.map ~f:Restricted_player_view.of_player
+    Map.data t.players |> List.map ~f:Restricted_player_view.of_player
   in
   let ready_players = t.ready_players in
   let public_messages = t.public_messages in
@@ -98,12 +97,20 @@ let ready_player t (query : Rpcs.Client_message.Ready_status_change.t) =
 ;;
 
 let add_item_to_inventory t (query : Rpcs.Client_message.Item_selection.t) =
-  match Map.find t.players query.name with
+  let name = query.name in
+  match Map.find t.players name with
   | None -> t
   | Some player ->
-    let new_inventory = query.item :: player.inventory in
-    let new_player = { player with inventory = new_inventory } in
-    { t with players = Map.set t.players ~key:query.name ~data:new_player }
+    (match Map.find t.item_choices_by_user name with
+     | None -> t
+     | Some _ ->
+       let new_inventory = query.item :: player.inventory in
+       let new_player = { player with inventory = new_inventory } in
+       { t with
+         players = Map.set t.players ~key:name ~data:new_player
+       ; item_choices_by_user =
+           Map.set t.item_choices_by_user ~key:name ~data:None
+       })
 ;;
 
 let update_message_map map key message =
@@ -396,7 +403,7 @@ let apply_item_effect t (action : Action.t) (item_effect : Item_effect.t) =
 
 let apply_actions_taken t =
   let cleared_private_results =
-    { t with private_results = String.Map.empty ; public_results = [] }
+    { t with private_results = String.Map.empty; public_results = [] }
   in
   List.fold
     t.actions_taken_in_round

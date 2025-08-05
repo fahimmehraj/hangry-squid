@@ -11,6 +11,39 @@ body {
     font-family: "Jeju Myeongjo";
 }
 
+.subtitle {
+    font-size: 1.4em;
+}
+
+.less-bottom-margin {
+    margin-bottom: 4px
+}
+
+.player-container {
+    display:flex;
+    flex-wrap: wrap;
+    justify-content:space-around;
+}
+
+.mb-6 {
+    margin: 24px;
+}
+
+.mx-auto {
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.items-center {
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
 .w-48 {
     width: 192px;
     display:flex;
@@ -45,14 +78,6 @@ body {
 
 
 .item {
-    /* display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100px;
-    align-items: center;
-    border: 1px solid black;
-    max-height: 200px;
-    padding: 10px; */
   display: flex;
   flex-direction: column;
   width: 128px;
@@ -73,17 +98,31 @@ body {
     text-align: center;
 }
 
-/* .item img {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-} */
-
 .items {
     display: flex;
     padding: 20px;
     flex-wrap: wrap;
     gap: 10px;
+}
+
+.name-input {
+  padding: 8px;
+  border: 1px solid #ccc; 
+  border-radius: 4px; 
+  font-size: 16px;
+  color: #333; 
+  background-color: #f5f5f5; 
+  transition: border-color 0.3s ease-in-out; 
+}
+
+.name-input:focus {
+  outline: none; 
+  border-color: #999; 
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
+}
+
+.name-input::placeholder {
+  color: #aaa; 
 }
 
 .inventory {

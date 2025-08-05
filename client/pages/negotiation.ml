@@ -187,6 +187,7 @@ let reply_and_send_container
       margin-left: 4px;
       padding: 3px 3px;
       font-size: 16px;
+      margin-right: 6px;
     |}]
         ; Vdom.Attr.placeholder "Reply"
         ; Vdom.Attr.type_ "text"
@@ -255,7 +256,7 @@ let chat_window
     border: 2px solid #000000;
     gap: 8px;
     overflow-y: scroll;
-    height: 76vh;
+    height: 65vh;
   |}]
       ]
     [ players_list_element players tab set_tab ~me

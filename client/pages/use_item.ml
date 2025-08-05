@@ -17,7 +17,7 @@ let is_complete_action action =
   Option.is_some action.target && Option.is_some action.item
 ;;
 
-let player_component player state inject =
+let player_component (player : Restricted_player_view.t) state inject =
   let color =
     match state.target with
     | None -> "transparent"
@@ -59,7 +59,12 @@ let player_component player state inject =
       [ container_styles
       ; Vdom.Attr.on_click (fun _ -> inject (`Update_target player))
       ]
-    [ Vdom.Node.img ~attrs:[ Vdom.Attr.src avatar_url; avatar_styles ] ()
+    [ Vdom.Node.img
+        ~attrs:
+          [ Vdom.Attr.src (Components.url_by_name player.name)
+          ; avatar_styles
+          ]
+        ()
     ; Vdom.Node.h2
         ~attrs:[ [%css {|
       color: %{font_color};
@@ -212,7 +217,14 @@ let content (client_state : Client_state.t Bonsai.t) (local_ graph) =
       [ left_section_stateful; right_section_stateful ]
   in
   let%arr main_content and submit_button in
-  Vdom.Node.div [ main_content; submit_button ]
+  {%html|
+    <div class="flex-column mx-auto items-center">
+      <div>
+        %{main_content}
+      </div>
+      %{submit_button}
+    </div>
+  |}
 ;;
 
 let body (client_state : Client_state.t Bonsai.t) (local_ graph) =

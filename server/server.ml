@@ -218,19 +218,27 @@ let handle_client_message
 ;;
 
 let urls =
-  [ "../client/assets/medical_kit.png"
-  ; "../client/assets/observer.png"
-  ; "../client/assets/poison_arrow.png"
-  ; "../client/assets/gamblers_potion.png"
-  ; "../client/assets/pocket_knife.png"
-  ; "../client/assets/item_blocker.png"
+  [ "../client/assets/medical_kit.png", "image/png"
+  ; "../client/assets/observer.png", "image/png"
+  ; "../client/assets/poison_arrow.png", "image/png"
+  ; "../client/assets/gamblers_potion.png", "image/png"
+  ; "../client/assets/pocket_knife.png", "image/png"
+  ; "../client/assets/item_blocker.png", "image/png"
+  ; "../client/assets/player1.jpg", "image/jpg"
+  ; "../client/assets/player2.webp", "image/webp"
+  ; "../client/assets/player3.webp", "image/webp"
+  ; "../client/assets/player4.jpg", "image/jpg"
+  ; "../client/assets/player5.webp", "image/webp"
+  ; "../client/assets/player6.png", "image/png"
+  ; "../client/assets/player7.jpeg", "image/jpeg"
+  ; "../client/assets/player8.png", "image/png"
   ]
 ;;
 
 let images : Cohttp_static_handler.Asset.t list =
-  List.map urls ~f:(fun url ->
+  List.map urls ~f:(fun (url, type_) ->
     Cohttp_static_handler.Asset.local
-      (Cohttp_static_handler.Asset.Kind.file ~rel:"img" ~type_:"image/png")
+      (Cohttp_static_handler.Asset.Kind.file ~rel:"img" ~type_)
       (Cohttp_static_handler.Asset.What_to_serve.file
          ~relative_to:`Exe
          ~path:url))

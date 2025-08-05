@@ -31,6 +31,7 @@ let player_in_waiting_room name avatar_url =
 ;;
 
 let result_component (result : Round_result.t) =
+  let player_name = result.player_in_question in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -41,9 +42,7 @@ let result_component (result : Round_result.t) =
     gap: 24px;
   |}]
       ]
-    [ player_in_waiting_room
-        result.player_in_question
-        "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"
+    [ player_in_waiting_room player_name (Components.url_by_name player_name)
     ; Vdom.Node.p [ Vdom.Node.text result.message ]
     ]
 ;;
