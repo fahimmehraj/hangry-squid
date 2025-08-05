@@ -10,7 +10,12 @@ type party =
 
 type tab =
   | All
-  | Dm of string
+  | Dm of Restricted_player_view.t
+
+type read_status =
+  { messages_read : int
+  ; messages_unread : int
+  }
 
 let inventory (player : Player.t) =
   List.map player.inventory ~f:Components.item
@@ -41,10 +46,56 @@ let msg_bubble content ~who =
     [ Vdom.Node.p [ Vdom.Node.text content ] ]
 ;;
 
-let all_messages_tab_element (tab : tab) (set_tab : tab -> unit Ui_effect.t) =
+let all_messages_tab_element
+  (tab : tab Bonsai.t)
+  (set_tab : (tab -> unit Ui_effect.t) Bonsai.t)
+  (msg_count : int Bonsai.t)
+  (local_ graph)
+  =
+  let unread_messages, inject = Bonsai.state 0 graph in
+  Bonsai.Edge.on_change'
+    ~equal:Int.equal
+    ~callback:
+      (let%arr inject and tab and unread_messages in
+       fun prev cur ->
+         let prev = match prev with None -> 0 | Some prev -> prev in
+         match cur = prev with
+         | true -> inject 0
+         | false ->
+           print_s [%sexp (cur : int)];
+           (match tab with
+            | All -> inject 0
+            | Dm _ -> inject (unread_messages + (cur - prev))))
+    msg_count
+    graph;
+  let unread_badge =
+    let%arr unread_messages in
+    match unread_messages with
+    | 0 -> Vdom.Node.none
+    | count ->
+      Vdom.Node.div
+        ~attrs:
+          [ [%css
+              {|
+    background-color: #ff4500;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px; 
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+  |}]
+          ]
+        [ Vdom.Node.text (Int.to_string count) ]
+  in
   let background_color =
+    let%arr tab in
     match tab with All -> "#F7F7F7" | _ -> "transparent"
   in
+  let%arr set_tab and background_color and unread_badge in
   Vdom.Node.div
     ~attrs:
       [ Vdom.Attr.on_click (fun _ -> set_tab All)
@@ -52,41 +103,114 @@ let all_messages_tab_element (tab : tab) (set_tab : tab -> unit Ui_effect.t) =
           {|
       background-color: %{background_color}; 
       cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    font-family: "Inter";
+      height: 40px;
     |}]
       ]
-    [ Vdom.Node.p [ Vdom.Node.text "All Messages" ] ]
+    [ Vdom.Node.div
+        [ Vdom.Node.p [ Vdom.Node.text "All Messages" ]; ]
+        ; unread_badge
+    ]
 ;;
 
-let players_list_element
-  (players : Restricted_player_view.t list)
-  (tab : tab)
-  (set_tab : tab -> unit Ui_effect.t)
-  ~(me : Player.t)
+let player_tab_element
+  (player : Restricted_player_view.t Bonsai.t)
+  (tab : tab Bonsai.t)
+  (set_tab : (tab -> unit Ui_effect.t) Bonsai.t)
+  (msg_count : int Bonsai.t)
+  (local_ graph)
   =
-  let players_list =
-    List.filter players ~f:(fun { is_alive; _ } -> is_alive)
-    |> List.filter ~f:(fun player -> not (String.equal player.name me.name))
-    |> List.map ~f:(fun player ->
-      let healthbar = Components.healthbar player.name player.health in
-      let background_color =
-        match tab with
-        | All -> "transparent"
-        | Dm name ->
-          (match String.equal name player.name with
-           | true -> "#F7F7F7"
-           | false -> "transparent")
-      in
+  (* let read_status, inject =
+    Bonsai.state_machine
+      ~default_model:{ messages_read = 0; messages_unread = 0 }
+      ~apply_action:(fun ctx model action ->
+        match action with
+        | `Read_all ->
+          { messages_read = model.messages_read + model.messages_unread ; messages_unread = 0 }
+        | `New_message num_messages ->
+          if num_messages = model.messages_read
+          then model
+          else { model with messages_unread = num_messages - model.messages_read })
+      graph
+  in *)
+  let unread_messages, inject = Bonsai.state 0 graph in
+  Bonsai.Edge.on_change'
+    ~equal:Int.equal
+    ~callback:
+      (let%arr inject and tab and player and unread_messages in
+       fun prev cur ->
+         let prev = match prev with None -> 0 | Some prev -> prev in
+         match cur = prev with
+         | true -> inject 0
+         | false ->
+           print_s [%sexp (cur : int)];
+           (match tab with
+            | All -> inject (unread_messages + (cur - prev))
+            | Dm selected_player ->
+              if Restricted_player_view.equal selected_player player
+              then inject 0
+              else inject (unread_messages + (cur - prev))))
+    msg_count
+    graph;
+  let unread_badge =
+    let%arr unread_messages in
+    match unread_messages with
+    | 0 -> Vdom.Node.none
+    | count ->
       Vdom.Node.div
         ~attrs:
           [ [%css
               {|
+    background-color: #ff4500;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px; 
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+  |}]
+          ]
+        [ Vdom.Node.text (Int.to_string count) ]
+  in
+  let%arr player and tab and set_tab and unread_badge and inject in
+  let element =
+    let healthbar = Components.healthbar player.name player.health in
+    let background_color =
+      match tab with
+      | All -> "transparent"
+      | Dm plr ->
+        (match String.equal plr.name player.name with
+         | true -> "#F7F7F7"
+         | false -> "transparent")
+    in
+    Vdom.Node.div
+      ~attrs:
+        [ [%css
+            {|
+    display: flex;
+    justify-content: space-between;
     background-color: %{background_color}; 
     cursor: pointer;
   |}]
-          ; Vdom.Attr.on_click (fun _ -> set_tab (Dm player.name))
-          ]
-        [ healthbar ])
+        ; Vdom.Attr.on_click (fun _ ->
+            let%bind.Effect () = set_tab (Dm player) in
+            let%bind.Effect () = inject 0 in
+            Effect.return ())
+        ]
+      [ healthbar; unread_badge ]
   in
+  element
+;;
+
+let sidebar
+  (players_list : Vdom.Node.t list)
+  (all_message_element : Vdom.Node.t)
+  =
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -99,7 +223,7 @@ let players_list_element
       overflow-x: hidden;
     |}]
       ]
-    (all_messages_tab_element tab set_tab :: players_list)
+    (all_message_element :: players_list)
 ;;
 
 let message_bubbles (messages : Message.t list) (me : string) =
@@ -152,7 +276,7 @@ let reply_and_send_container
                     }
                   | Dm recipient ->
                     { sender = me.name
-                    ; recipient = Some recipient
+                    ; recipient = Some recipient.name
                     ; contents = model
                     ; timestamp = Time_ns.now ()
                     })
@@ -232,13 +356,44 @@ let chat_window
   ~(me : Player.t Bonsai.t)
   (local_ graph)
   =
-  (* let _s = Bonsai.assoc_list (module Restricted_player_view) players ~f:(fun player graph -> ()) in *)
+  let players =
+    let%arr players and me in
+    List.filter players ~f:(fun { Restricted_player_view.is_alive; _ } ->
+      is_alive)
+    |> List.filter ~f:(fun player -> not (String.equal player.name me.name))
+  in
+  let my_messages =
+    let%arr players and my_messages in
+    List.map players ~f:(fun player ->
+      ( player
+      , match Map.find my_messages player.name with
+        | None -> []
+        | Some messages -> messages ))
+    |> Map.of_alist_exn (module Restricted_player_view)
+  in
   let tab, set_tab = Bonsai.state All graph in
+  let player_tabs =
+    Bonsai.assoc
+      (module Restricted_player_view)
+      my_messages
+      ~f:(fun player messages graph ->
+        let msg_count =
+          let%arr messages in
+          List.length messages
+        in
+        player_tab_element player tab set_tab msg_count graph)
+      graph
+  in
+
+  let public_msg_count = let%arr public_messages in List.length public_messages in
+  let all_messages_tab_element = all_messages_tab_element tab set_tab public_msg_count graph in
+
+  let sidebar =
+    let%arr player_tabs and tab and set_tab and all_messages_tab_element in
+    sidebar (Map.data player_tabs) all_messages_tab_element
+  in
   let messages =
-    let%arr players
-    and tab
-    and my_messages
-    and public_messages in
+    let%arr players and tab and my_messages and public_messages in
     match tab with
     | All -> public_messages
     | Dm other_party ->
@@ -247,7 +402,7 @@ let chat_window
        | Some messages -> messages)
   in
   let messages_window_stateful = messages_window messages ~me tab graph in
-  let%arr messages_window_stateful and players and tab and set_tab and me in
+  let%arr messages_window_stateful and sidebar in
   Vdom.Node.div
     ~attrs:
       [ [%css
@@ -259,9 +414,7 @@ let chat_window
     height: 65vh;
   |}]
       ]
-    [ players_list_element players tab set_tab ~me
-    ; messages_window_stateful
-    ]
+    [ sidebar; messages_window_stateful ]
 ;;
 
 (* Remove unnecessary _with_header *)
