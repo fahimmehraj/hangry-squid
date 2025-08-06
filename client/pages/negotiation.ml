@@ -307,6 +307,10 @@ let reply_and_send_container
   Vdom.Node.div [ reply_box; send_button ]
 ;;
 
+let auto_scrolling_div =
+  Vdom.Node.div ~attrs:[ Vdom.Attr.id "scrollable-div" ] []
+;;
+
 let messages_window
   messages
   ~(me : Player.t Bonsai_web.Bonsai.t)
@@ -314,6 +318,30 @@ let messages_window
   (local_ graph)
   =
   let reply_and_send_container = reply_and_send_container tab me graph in
+  let d = auto_scrolling_div in
+  let length =
+    let%arr messages in
+    List.length messages
+  in
+  Bonsai.Edge.on_change
+    ~equal:Int.equal
+    length
+    ~callback:
+      (Bonsai.return (fun a ->
+         let _ =
+           Js_of_ocaml.Js.Unsafe.eval_string
+             "\n\
+             \  const element = document.getElementById(\"scrollable-div\");\n\
+             \  try {if (element !== null) {\n\
+             \    element.scrollTo(0, element.scrollHeight);\n\
+             \  }}\n\
+             \    catch (err) {\n\
+             \      ;\n\
+             \    }\n\
+             \         "
+         in
+         Effect.return ()))
+    graph;
   let%arr messages and me and reply_and_send_container in
   Vdom.Node.div
     ~attrs:
@@ -325,7 +353,7 @@ let messages_window
     overflow: auto;
   |}]
       ]
-    [ message_bubbles messages me.name; reply_and_send_container ]
+    [ message_bubbles messages me.name; d; reply_and_send_container ]
 ;;
 
 let chat_window
