@@ -61,9 +61,7 @@ let player_component (player : Restricted_player_view.t) state inject =
       ]
     [ Vdom.Node.img
         ~attrs:
-          [ Vdom.Attr.src (Assets.url_by_name player.name)
-          ; avatar_styles
-          ]
+          [ Vdom.Attr.src (Assets.url_by_name player.name); avatar_styles ]
         ()
     ; Vdom.Node.h2
         ~attrs:[ [%css {|

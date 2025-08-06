@@ -1,4 +1,4 @@
-open Core
+open! Core
 
 let avatar_urls =
   [ "../client/assets/player1.jpg"
