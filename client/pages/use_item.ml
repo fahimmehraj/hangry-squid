@@ -4,10 +4,6 @@ open Bonsai.Let_syntax
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let avatar_url =
-  "https://upload.wikimedia.org/wikipedia/en/c/c1/Seong_Gi-hun_season_1.png"
-;;
-
 type action =
   { target : Restricted_player_view.t option
   ; item : Item.t option

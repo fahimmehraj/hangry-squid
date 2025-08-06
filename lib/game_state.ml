@@ -402,12 +402,9 @@ let apply_item_effect t (action : Action.t) (item_effect : Item_effect.t) =
 ;;
 
 let apply_actions_taken t =
-  let cleared_private_results =
-    { t with private_results = String.Map.empty; public_results = [] }
-  in
   List.fold
     t.actions_taken_in_round
-    ~init:cleared_private_results
+    ~init:t
     ~f:(fun acc_state action_taken ->
       match action_taken.item_used with
       | Item.Observer -> add_observer_message acc_state action_taken
@@ -440,30 +437,36 @@ let compile_all_elimination_results t =
       (match health <= 0 with
        (* round all health below 0 to 0 so that no one's health bar shows -30 HP*)
        | true ->
-         let player_with_health_updated =
-           { player with health = 0; is_alive = false }
-         in
-         let new_game_state =
-           { acc_state with
-             players =
-               Map.set
-                 acc_state.players
-                 ~key:player_name
-                 ~data:player_with_health_updated
-           }
-         in
-         let elimination_result : Round_result.t =
-           { player_in_question = player_name
-           ; message =
-               [%string
-                 "was eliminated in round \
-                  %{new_game_state.current_round#Int}"]
-           }
-         in
-         { new_game_state with
-           public_results =
-             elimination_result :: new_game_state.public_results
-         }
+         (match
+            List.exists acc_state.public_results ~f:(fun result ->
+              String.equal player_name result.player_in_question)
+          with
+          | true -> acc_state
+          | false ->
+            let player_with_health_updated =
+              { player with health = 0; is_alive = false }
+            in
+            let new_game_state =
+              { acc_state with
+                players =
+                  Map.set
+                    acc_state.players
+                    ~key:player_name
+                    ~data:player_with_health_updated
+              }
+            in
+            let elimination_result : Round_result.t =
+              { player_in_question = player_name
+              ; message =
+                  [%string
+                    "was eliminated in round \
+                     %{new_game_state.current_round#Int}"]
+              }
+            in
+            { new_game_state with
+              public_results =
+                elimination_result :: new_game_state.public_results
+            })
        | false -> acc_state))
 ;;
 

@@ -55,7 +55,7 @@ let description = function
   | Poisonous_dart { remove_health; chance_of_removing; _ } ->
     [%string
       "Deals %{remove_health#Int} damage but has a \
-       %{chance_of_removing#Float} chance of missing"]
+       %{chance_of_removing#Float} chance of hitting"]
   | Pocket_knife { remove_health; _ } ->
     [%string "Deals %{remove_health#Int} damage"]
   | Gamblers_potion
