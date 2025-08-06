@@ -18,7 +18,6 @@ let item ?(on_click = fun _ -> Effect.all_unit []) ?(selected = false) item =
     | true -> Css_gen.color (`Hex "#4BB4FF")
     | false -> Css_gen.empty
   in
-
   {%html|
     <div class="item" style=%{selected_container_style} on_click=%{on_click}>
       <img src=%{image_url#String}/>
@@ -28,7 +27,7 @@ let item ?(on_click = fun _ -> Effect.all_unit []) ?(selected = false) item =
 |}
 ;;
 
-let healthbar name health =
+let healthbar ?(unread_count = 0) name health =
   let green_end = Int.to_string (health - 1) ^ "%" in
   let red_start = Int.to_string health ^ "%" in
   let healthbar_styles =
@@ -45,6 +44,28 @@ let healthbar name health =
           border: 1px solid #ccc;
     |}]
   in
+  let unread_badge =
+    match unread_count with
+    | 0 -> Vdom.Node.none
+    | count ->
+      Vdom.Node.div
+        ~attrs:
+          [ [%css
+              {|
+    background-color: #ff4500;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px; 
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+  |}]
+          ]
+        [ Vdom.Node.text (Int.to_string count) ]
+  in
   let healthbar =
     Vdom.Node.div
       ~attrs:[ healthbar_styles ]
@@ -60,9 +81,16 @@ let healthbar name health =
         gap: 4px;
       |}]
       ]
-    [ Vdom.Node.p
-        ~attrs:[ [%css {| font-family: "Inter"; |}] ]
-        [ Vdom.Node.text name ]
+    [ Vdom.Node.div
+        ~attrs:[ [%css {|
+  display: flex;
+  gap: 8px;
+  |}] ]
+        [ Vdom.Node.p
+            ~attrs:[ [%css {| font-family: "Inter"; |}] ]
+            [ Vdom.Node.text name ]
+        ; unread_badge
+        ]
     ; healthbar
     ]
 ;;

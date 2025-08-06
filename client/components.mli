@@ -7,7 +7,7 @@ val item
   -> Hangry_squid.Item.t
   -> Bonsai_web.Vdom.Node.t
 
-val healthbar : string -> int -> Bonsai_web.Vdom.Node.t
+val healthbar : ?unread_count:int -> string -> int -> Bonsai_web.Vdom.Node.t
 
 val header
   :  Hangry_squid.Player.t

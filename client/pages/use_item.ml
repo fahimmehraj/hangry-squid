@@ -77,7 +77,8 @@ let player_list
   inject
   =
   let%arr players and state and inject in
-  List.map players ~f:(fun player -> player_component player state inject)
+  List.filter players ~f:(fun player -> player.is_alive)
+  |> List.map ~f:(fun player -> player_component player state inject)
   |> Vdom.Node.div
        ~attrs:
          [ [%css
@@ -110,6 +111,8 @@ let left_section players state inject (local_ graph) =
     ; player_list_stateful
     ]
 ;;
+
+1000
 
 let inventory (items : Item.t list Bonsai.t) state inject =
   let item_components =

@@ -104,14 +104,13 @@ let all_messages_tab_element
       background-color: %{background_color}; 
       cursor: pointer;
       display: flex;
-      justify-content: space-between;
+      gap: 8px;
     font-family: "Inter";
       height: 40px;
     |}]
       ]
-    [ Vdom.Node.div
-        [ Vdom.Node.p [ Vdom.Node.text "All Messages" ]; ]
-        ; unread_badge
+    [ Vdom.Node.div [ Vdom.Node.p [ Vdom.Node.text "All Messages" ] ]
+    ; unread_badge
     ]
 ;;
 
@@ -135,11 +134,11 @@ let player_tab_element
           else { model with messages_unread = num_messages - model.messages_read })
       graph
   in *)
-  let unread_messages, inject = Bonsai.state 0 graph in
+  let unread_count, inject = Bonsai.state 0 graph in
   Bonsai.Edge.on_change'
     ~equal:Int.equal
     ~callback:
-      (let%arr inject and tab and player and unread_messages in
+      (let%arr inject and tab and player and unread_count in
        fun prev cur ->
          let prev = match prev with None -> 0 | Some prev -> prev in
          match cur = prev with
@@ -147,39 +146,18 @@ let player_tab_element
          | false ->
            print_s [%sexp (cur : int)];
            (match tab with
-            | All -> inject (unread_messages + (cur - prev))
+            | All -> inject (unread_count + (cur - prev))
             | Dm selected_player ->
               if Restricted_player_view.equal selected_player player
               then inject 0
-              else inject (unread_messages + (cur - prev))))
+              else inject (unread_count + (cur - prev))))
     msg_count
     graph;
-  let unread_badge =
-    let%arr unread_messages in
-    match unread_messages with
-    | 0 -> Vdom.Node.none
-    | count ->
-      Vdom.Node.div
-        ~attrs:
-          [ [%css
-              {|
-    background-color: #ff4500;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-    border-radius: 50%;
-    width: 20px; 
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center; 
-  |}]
-          ]
-        [ Vdom.Node.text (Int.to_string count) ]
-  in
-  let%arr player and tab and set_tab and unread_badge and inject in
+  let%arr player and tab and set_tab and inject and unread_count in
   let element =
-    let healthbar = Components.healthbar player.name player.health in
+    let healthbar =
+      Components.healthbar ~unread_count player.name player.health
+    in
     let background_color =
       match tab with
       | All -> "transparent"
@@ -194,6 +172,7 @@ let player_tab_element
             {|
     display: flex;
     justify-content: space-between;
+    align-items: center;
     background-color: %{background_color}; 
     cursor: pointer;
   |}]
@@ -202,7 +181,7 @@ let player_tab_element
             let%bind.Effect () = inject 0 in
             Effect.return ())
         ]
-      [ healthbar; unread_badge ]
+      [ healthbar ]
   in
   element
 ;;
@@ -384,10 +363,13 @@ let chat_window
         player_tab_element player tab set_tab msg_count graph)
       graph
   in
-
-  let public_msg_count = let%arr public_messages in List.length public_messages in
-  let all_messages_tab_element = all_messages_tab_element tab set_tab public_msg_count graph in
-
+  let public_msg_count =
+    let%arr public_messages in
+    List.length public_messages
+  in
+  let all_messages_tab_element =
+    all_messages_tab_element tab set_tab public_msg_count graph
+  in
   let sidebar =
     let%arr player_tabs and tab and set_tab and all_messages_tab_element in
     sidebar (Map.data player_tabs) all_messages_tab_element
