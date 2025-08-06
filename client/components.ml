@@ -3,23 +3,6 @@ open Bonsai_web
 open Hangry_squid
 module Url_var = Bonsai_web_ui_url_var
 
-let avatar_urls =
-  [ "../client/assets/player1.jpg"
-  ; "../client/assets/player2.webp"
-  ; "../client/assets/player3.webp"
-  ; "../client/assets/player4.jpg"
-  ; "../client/assets/player5.webp"
-  ; "../client/assets/player6.png"
-  ; "../client/assets/player7.jpeg"
-  ; "../client/assets/player8.png"
-  ]
-;;
-
-let url_by_name name = 
-  let index = (String.hash name) % (List.length avatar_urls) in
-  List.nth_exn avatar_urls index
-;;
-
 let item ?(on_click = fun _ -> Effect.all_unit []) ?(selected = false) item =
   let image_url = "/assets/" ^ Item.image item in
   let name = Item.to_string item in

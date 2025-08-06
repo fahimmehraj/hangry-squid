@@ -29,7 +29,7 @@ let player_in_waiting_room name ~is_ready =
   Vdom.Node.div
     ~attrs:[ container_styles ]
     [ Vdom.Node.img
-        ~attrs:[ Vdom.Attr.src (Components.url_by_name name); avatar_styles ]
+        ~attrs:[ Vdom.Attr.src (Assets.url_by_name name); avatar_styles ]
         ()
     ; Vdom.Node.h2
         ~attrs:[ [%css {| color: %{name_color}; |}] ]

@@ -42,7 +42,7 @@ let result_component (result : Round_result.t) =
     gap: 24px;
   |}]
       ]
-    [ player_in_waiting_room player_name (Components.url_by_name player_name)
+    [ player_in_waiting_room player_name (Assets.url_by_name player_name)
     ; Vdom.Node.p [ Vdom.Node.text result.message ]
     ]
 ;;
