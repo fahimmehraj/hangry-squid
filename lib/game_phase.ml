@@ -19,11 +19,11 @@ let to_string = function
 
 let to_duration t =
   match t with 
-  | Rules -> 1
-  | Item_selection -> 5
-  | Negotiation -> 1
-  | Item_usage -> 10
-  | Round_results -> 5
-  | Game_results -> 1
+  | Rules -> 10
+  | Item_selection -> 10
+  | Negotiation -> 30
+  | Item_usage -> 15
+  | Round_results -> 10
+  | Game_results -> 15
   | Waiting_room -> Int.max_int
 ;;
