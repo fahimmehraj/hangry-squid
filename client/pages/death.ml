@@ -1,7 +1,7 @@
 open! Core
 open Bonsai_web
 
-let body (local_ _graph) =
+let body () =
   Bonsai.return
     (Vdom.Node.div 
     ~attrs:[ [%css {|

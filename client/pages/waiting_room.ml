@@ -11,20 +11,20 @@ let player_in_waiting_room name ~is_ready =
   let container_styles =
     [%css
       {|
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  |}]
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      |}]
   in
   let avatar_styles =
     [%css
       {|
-    width: 200px;
-  height: 200px;
-  border-radius: 50%; 
-  object-fit: cover; 
-  display: block; 
-  |}]
+        width: 200px;
+        height: 200px;
+        border-radius: 50%; 
+        object-fit: cover; 
+        display: block; 
+      |}]
   in
   Vdom.Node.div
     ~attrs:[ container_styles ]
@@ -43,25 +43,23 @@ let ready_button (client_state : Client_state.t Bonsai.t) (local_ graph) =
     let%arr ready_players and me in
     List.mem ready_players me.name ~equal:String.equal
   in
-  let dispatch_ready =
-    Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph
-  in
+  let dispatcher = Utils.dispatcher graph in
   let query =
     let%arr me and am_i_ready in
     Rpcs.Client_message.Query.Ready_status_change
       { name = me.name; is_ready = not am_i_ready }
   in
-  let%arr am_i_ready and query and dispatch_ready in
+  let%arr am_i_ready and query and dispatcher in
   Vdom.Node.button
     ~attrs:
       [ Vdom.Attr.on_click (fun _ ->
-          match%bind.Effect dispatch_ready query with
+          match%bind.Effect dispatcher query with
           | Ok _ -> Effect.all_unit []
           | Error error ->
             Effect.of_sync_fun eprint_s [%sexp (error : Error.t)])
       ]
     [ Vdom.Node.text
-        (match am_i_ready with true -> "Unready" | false -> "Ready up")
+        (match am_i_ready with true -> "Unready" | false -> "Ready Up")
     ]
 ;;
 
@@ -71,11 +69,11 @@ let body (client_state : Client_state.t Bonsai.t) (local_ graph) =
       ~attrs:
         [ [%css
             {|
-    display: flex;
-    padding: 8px;
-    gap: 20px;
-    flex-wrap: wrap;
-  |}]
+              display: flex;
+              padding: 8px;
+              gap: 20px;
+              flex-wrap: wrap;
+            |}]
         ; Vdom.Attr.class_ "player-container"
         ]
       (List.map players ~f:(fun (player : Restricted_player_view.t) ->

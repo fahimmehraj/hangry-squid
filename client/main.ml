@@ -15,7 +15,7 @@ let page_with_header (current_state : Client_state.t Bonsai.t) (local_ graph)
   let%sub { round_start; current_phase; me; _ } = current_state in
   let%sub { is_alive; _ } = me in
   match%sub is_alive with
-  | false -> Pages.Death.body graph
+  | false -> Pages.Death.body ()
   | true ->
     let now =
       Bonsai.Clock.approx_now ~tick_every:(Time_ns.Span.of_sec 1.) graph
