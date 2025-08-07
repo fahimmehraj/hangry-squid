@@ -121,19 +121,6 @@ let player_tab_element
   (msg_count : int Bonsai.t)
   (local_ graph)
   =
-  (* let read_status, inject =
-    Bonsai.state_machine
-      ~default_model:{ messages_read = 0; messages_unread = 0 }
-      ~apply_action:(fun ctx model action ->
-        match action with
-        | `Read_all ->
-          { messages_read = model.messages_read + model.messages_unread ; messages_unread = 0 }
-        | `New_message num_messages ->
-          if num_messages = model.messages_read
-          then model
-          else { model with messages_unread = num_messages - model.messages_read })
-      graph
-  in *)
   let unread_count, inject = Bonsai.state 0 graph in
   Bonsai.Edge.on_change'
     ~equal:Int.equal
@@ -308,10 +295,6 @@ let reply_and_send_container
   Vdom.Node.div [ reply_box; send_button ]
 ;;
 
-(* let auto_scrolling_div =
-  Vdom.Node.div ~attrs:[ Vdom.Attr.id "scrollable-div" ] []
-;; *)
-
 let messages_window
   messages
   ~(me : Player.t Bonsai_web.Bonsai.t)
@@ -319,7 +302,6 @@ let messages_window
   (local_ graph)
   =
   let reply_and_send_container = reply_and_send_container tab me graph in
-  (* let d = auto_scrolling_div in *)
   let length =
     let%arr messages in
     List.length messages
