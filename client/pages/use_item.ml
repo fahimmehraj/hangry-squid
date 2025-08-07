@@ -152,7 +152,7 @@ let submit_button state inject =
 ;;
 
 let content (client_state : Client_state.t Bonsai.t) (local_ graph) =
-  let dispatcher = Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph in
+  let dispatcher = Utils.dispatcher graph in
   let input =
     let%arr client_state and dispatcher in
     client_state, dispatcher

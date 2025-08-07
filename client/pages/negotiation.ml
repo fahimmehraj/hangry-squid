@@ -217,7 +217,7 @@ let reply_and_send_container
   (me : Player.t Bonsai_web.Bonsai.t)
   (local_ graph)
   =
-  let dispatcher = Rpc_effect.Rpc.dispatcher Rpcs.Client_message.rpc graph in
+  let dispatcher = Utils.dispatcher graph in
   let im_a_genius =
     let%arr me and tab and dispatcher in
     me, tab, dispatcher
