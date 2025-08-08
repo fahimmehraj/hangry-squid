@@ -174,13 +174,17 @@ let add_action t (action : Action.t) =
     | item :: rest ->
       if Item.equal item item_used then rest else item :: remove_first rest
   in
-  let new_inventory = remove_first player.inventory in
-  let new_player = { player with inventory = new_inventory } in
-  let new_player_map = Map.set t.players ~key:player_name ~data:new_player in
-  { t with
-    actions_taken_in_round = action :: t.actions_taken_in_round
-  ; players = new_player_map
-  }
+  match List.mem player.inventory item_used ~equal:Item.equal with 
+  | true ->
+    let new_inventory = remove_first player.inventory in
+    let new_player = { player with inventory = new_inventory } in
+    let new_player_map = Map.set t.players ~key:player_name ~data:new_player in
+    { t with
+      actions_taken_in_round = action :: t.actions_taken_in_round
+    ; players = new_player_map
+    }
+  | false ->
+    t
 ;;
 
 let get_items_used_by_player t player =
