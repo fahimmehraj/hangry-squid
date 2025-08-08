@@ -3,13 +3,17 @@ open! Hangry_squid
 open Bonsai_web
 open Bonsai.Let_syntax
 
-let join_status_state_machine (local_ graph) =
+let join_status_state_machine toggle_loading (local_ graph) =
   let dispatcher = Utils.dispatcher graph in
+  let input =
+    let%arr dispatcher and toggle_loading in
+    dispatcher, toggle_loading
+  in
   Bonsai.state_machine_with_input
     ~default_model:(Entering_name ("", None) : Landing_state.t)
     ~apply_action:(fun ctx input (model : Landing_state.t) action ->
       match input with
-      | Active dispatcher ->
+      | Active (dispatcher, toggle_loading) ->
         (match action with
          | `Ack_join accepted_name -> Accepted_name accepted_name
          | `Failed_join error ->
@@ -24,7 +28,9 @@ let join_status_state_machine (local_ graph) =
                  (Landing_state.name model)
              in
              let my_new_effect =
+               let%bind.Effect () = toggle_loading in
                let%bind.Effect result = dispatcher player_name_query in
+               let%bind.Effect () = toggle_loading in
                match result with
                | Error error ->
                  Bonsai.Apply_action_context.inject
@@ -46,7 +52,7 @@ let join_status_state_machine (local_ graph) =
                my_new_effect;
              model))
       | Inactive -> model)
-    dispatcher
+    input
     graph
 ;;
 

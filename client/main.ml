@@ -91,13 +91,19 @@ let render_game_page name (local_ graph) =
 ;;
 
 let serve_route (local_ graph) =
-  let join_game_state, update_join_game_state =
-    Pages.Landing.join_status_state_machine graph
+  let loading_state, toggle_loading =
+    Bonsai.toggle ~default_model:false graph
   in
-  match%sub join_game_state with
-  | Accepted_name name -> render_game_page name graph
-  | Entering_name (name, error) ->
-    Pages.Landing.body update_join_game_state error
+  let join_game_state, update_join_game_state =
+    Pages.Landing.join_status_state_machine toggle_loading graph
+  in
+  match%sub loading_state with
+  | true -> Bonsai.return loading_page
+  | false ->
+    (match%sub join_game_state with
+     | Accepted_name name -> render_game_page name graph
+     | Entering_name (name, error) ->
+       Pages.Landing.body update_join_game_state error)
 ;;
 
 let () = Bonsai_web.Start.start serve_route

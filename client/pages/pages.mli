@@ -6,7 +6,8 @@ open! Async_rpc_kernel
 
 module Landing : sig
   val join_status_state_machine
-    :  local_ Bonsai.graph
+    :  unit Ui_effect.t Bonsai.t
+    -> local_ Bonsai.graph
     -> Landing_state.t Bonsai.t
        * ([< `Ack_join of string
           | `Failed_join of string
