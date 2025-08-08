@@ -55,14 +55,14 @@ let description = function
   | Poisonous_dart { remove_health; chance_of_removing; _ } ->
     [%string
       "Deals %{remove_health#Int} damage but has a \
-       %{chance_of_removing#Float} chance of hitting"]
+       %{(chance_of_removing *. 100.)#Float}% chance of hitting"]
   | Pocket_knife { remove_health; _ } ->
     [%string "Deals %{remove_health#Int} damage"]
   | Gamblers_potion
       { add_health; remove_health; chance_of_adding; chance_of_removing } ->
     [%string
-      "%{chance_of_adding#Float}% to gain %{add_health#Int} HP\n\
-       %{chance_of_removing#Float}% to lose %{remove_health#Int} HP"]
+      "%{(chance_of_adding *. 100.)#Float}% chance to gain %{add_health#Int} HP\n\
+       %{(chance_of_removing *. 100.)#Float}% chance to lose %{remove_health#Int} HP"]
 ;;
 
 let image = function
